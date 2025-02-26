@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev --turbopack\" \"nodemon hooks/server.js\"",
+    "dev": "concurrently \"next dev --turbopack\" \"nodemon backend/server.js\"",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently \"next start\" \"node backend/server.js\"",
+    "start:backend": "node backend/server.js",
+    "dev:backend": "nodemon backend/server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -13,7 +15,7 @@
     "body-parser": "^1.20.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csurf": "^1.10.0",
+    "csurf": "^1.11.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
@@ -23,21 +25,21 @@
     "mongoose": "^8.10.2",
     "next": "15.1.7",
     "node-cron": "^3.0.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "ws": "^8.18.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@eslint/eslintrc": "^3.0.0",
+    "@types/node": "20.12.2",
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0",
     "concurrently": "^7.6.0",
-    "eslint": "^9",
+    "eslint": "9.10.0",
     "eslint-config-next": "15.1.7",
     "nodemon": "^2.0.22",
-    "postcss": "^8",
+    "postcss": "^8.4.47",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5.6.3"
   }
 }
