@@ -26,12 +26,12 @@ export default function Home() {
 
   useEffect(() => {
     fetchLotteryData();
-    fetchLatestWinner(); // Added to useEffect to fetch on mount
+    fetchLatestWinner();
   }, [fetchLotteryData]);
 
   const fetchLatestWinner = async () => {
     try {
-      const res = await fetch("/api/latest-winner", { credentials: "include" }); // Fixed URL
+      const res = await fetch("/api/latest-winner", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch latest winner");
       const data = await res.json();
       setLatestWinner(data);
@@ -212,7 +212,7 @@ export default function Home() {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
@@ -239,8 +239,8 @@ export default function Home() {
                   <span className="font-bold text-green-200">Acceptance of Terms:</span>
                 </strong>
                 <br />
-                By accessing or using our Solana Lottery website ("Website"), you agree to comply with and be
-                bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not
+                By accessing or using our Solana Lottery website (&quot;Website&quot;), you agree to comply with and be
+                bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you must not
                 use the Website.
               </li>
               <li className="mb-2">
@@ -294,7 +294,7 @@ export default function Home() {
                   <span className="font-bold text-green-200">Disclaimer of Warranties:</span>
                 </strong>
                 <br />
-                The Website is provided on an "as is" and "as available" basis. We make no
+                The Website is provided on an &quot;as is&quot; and &quot;as available&quot; basis. We make no
                 representations or warranties of any kind, express or implied, regarding the operation or availability
                 of the Website, or the accuracy, completeness, or reliability of any information provided on the
                 Website.
