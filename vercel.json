@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/draw-winner",
-      "schedule": "0 20 * * *"
+      "schedule": "* * * * *"
     }
   ]
 }
