@@ -79,25 +79,27 @@ const drawWinner = async () => {
     });
     console.log("Transaction sent, signature:", signature);
 
-    // Add timeout and better error handling for confirmation
     console.log("Attempting to confirm transaction...");
+    let confirmed = false;
     try {
       await Promise.race([
         connection.confirmTransaction(signature, "confirmed"),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Transaction confirmation timeout")), 15000) // 15s timeout
+          setTimeout(() => reject(new Error("Transaction confirmation timeout")), 8000) // 8s
         ),
       ]);
       console.log("Transaction confirmed");
+      confirmed = true;
     } catch (confirmError) {
-      console.error("Confirmation failed:", confirmError.message);
-      throw new Error(`Transaction confirmation failed: ${confirmError.message}`);
+      console.warn("Confirmation issue:", confirmError.message);
+      console.log("Proceeding without full confirmation due to timeout or error");
     }
 
     const winner = new Winner({
       walletAddress: winnerAddress,
       amount: totalPot,
       payoutSignature: signature,
+      confirmed: confirmed, // Track if fully confirmed
     });
     await winner.save();
     console.log("Winner saved to DB");
