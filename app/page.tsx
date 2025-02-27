@@ -29,16 +29,20 @@ export default function Home() {
     fetchLatestWinner();
   }, [fetchLotteryData]);
 
-  const fetchLatestWinner = async () => {
-    try {
-      const res = await fetch("/api/latest-winner", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch latest winner");
-      const data = await res.json();
-      setLatestWinner(data);
-    } catch (err) {
-      console.error("Error fetching latest winner:", err);
+const fetchLatestWinner = async () => {
+  try {
+    const res = await fetch("/api/latest-winner", { credentials: "include" });
+    if (!res.ok) {
+      const text = await res.text(); // Get raw text if JSON fails
+      throw new Error(`Failed to fetch latest winner: ${res.status} - ${text}`);
     }
-  };
+    const data = await res.json();
+    setLatestWinner(data);
+  } catch (err) {
+    console.error("Error fetching latest winner:", err.message);
+    setError(err.message); // Optional: Display error to user
+  }
+};
 
   const onDeposit = async () => {
     setIsDepositing(true);
