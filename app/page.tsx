@@ -41,7 +41,7 @@ const fetchLatestWinner = async () => {
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("Error fetching latest winner:", errorMessage);
-    setError(errorMessage); // Optional: Display error to user
+    // Removed: setError(errorMessage);
   }
 };
 
