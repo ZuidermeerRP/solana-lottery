@@ -9,7 +9,7 @@ const connectToMongo = async () => {
   }
 };
 
-export async function GET(req) {
+export async function GET() { // Removed 'req'
   try {
     await connectToMongo();
 

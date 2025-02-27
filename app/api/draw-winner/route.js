@@ -1,3 +1,4 @@
+// app/api/draw-winner/route.js
 import { createHandler } from "../../../lib/handler";
 import { Connection, PublicKey, Transaction, SystemProgram, Keypair } from "@solana/web3.js";
 import Deposit from "../../../models/Deposit";
@@ -35,7 +36,7 @@ export const POST = createHandler(async (req, res) => {
 
     try {
       new PublicKey(winnerAddress);
-    } catch (e) {
+    } catch { // Removed 'e'
       return res.status(400).json({ error: "Invalid winner address" });
     }
 

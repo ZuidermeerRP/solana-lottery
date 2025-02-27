@@ -1,5 +1,5 @@
 // app/api/submit-deposit/route.js
-import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
+import { Connection, SystemProgram } from "@solana/web3.js"; // Removed PublicKey
 import Deposit from "../../../models/Deposit";
 import Nonce from "../../../models/Nonce";
 import { NextResponse } from "next/server";
