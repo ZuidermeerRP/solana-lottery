@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/draw-winner",
-      "schedule": "0 20 * * *" // 20:00 UTC = 21:00 CET
+      "schedule": "0 20 * * *"
     }
   ]
 }
