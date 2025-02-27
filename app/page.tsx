@@ -33,12 +33,12 @@ const fetchLatestWinner = async () => {
   try {
     const res = await fetch("/api/latest-winner", { credentials: "include" });
     if (!res.ok) {
-      const text = await res.text(); // Get raw text if JSON fails
+      const text = await res.text();
       throw new Error(`Failed to fetch latest winner: ${res.status} - ${text}`);
     }
     const data = await res.json();
     setLatestWinner(data);
-  } catch (err) {
+  } catch (err: Error) { // Type err as Error
     console.error("Error fetching latest winner:", err.message);
     setError(err.message); // Optional: Display error to user
   }
