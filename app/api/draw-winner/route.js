@@ -1,31 +1,3 @@
-import { Connection, PublicKey, Transaction, SystemProgram, Keypair } from "@solana/web3.js";
-import mongoose from "mongoose";
-import Deposit from "../../../models/Deposit"; // Adjust path
-import Winner from "../../../models/Winner"; // Adjust path
-
-const connection = new Connection(
-  process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com",
-  "confirmed"
-);
-
-const LOTTERY_WALLET = process.env.LOTTERY_WALLET_PRIVATE_KEY
-  ? Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.LOTTERY_WALLET_PRIVATE_KEY)))
-  : null;
-
-const connectDB = async () => {
-  if (mongoose.connection.readyState) {
-    console.log("Reusing existing DB connection");
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("DB connected to:", mongoose.connection.name);
-  } catch (error) {
-    console.error("DB connection failed:", error.message);
-    throw error;
-  }
-};
-
 const drawWinner = async () => {
   console.log("Starting draw-winner process");
   try {
@@ -85,21 +57,22 @@ const drawWinner = async () => {
       await Promise.race([
         connection.confirmTransaction(signature, "confirmed"),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Transaction confirmation timeout")), 8000) // 8s
+          setTimeout(() => reject(new Error("Transaction confirmation timeout")), 3000) // 3s
         ),
       ]);
-      console.log("Transaction confirmed");
+      console.log("Transaction confirmed successfully");
       confirmed = true;
     } catch (confirmError) {
       console.warn("Confirmation issue:", confirmError.message);
       console.log("Proceeding without full confirmation due to timeout or error");
     }
 
+    console.log("Continuing to save winner and clear deposits...");
     const winner = new Winner({
       walletAddress: winnerAddress,
       amount: totalPot,
       payoutSignature: signature,
-      confirmed: confirmed, // Track if fully confirmed
+      confirmed: confirmed,
     });
     await winner.save();
     console.log("Winner saved to DB");
@@ -118,33 +91,3 @@ const drawWinner = async () => {
     return { error: "Failed to process draw", details: error.message, status: 500 };
   }
 };
-
-export async function GET() {
-  const result = await drawWinner();
-  return new Response(
-    JSON.stringify(
-      result.error
-        ? { error: result.error, details: result.details }
-        : { message: result.message, signature: result.signature }
-    ),
-    {
-      status: result.status,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
-}
-
-export async function POST() {
-  const result = await drawWinner();
-  return new Response(
-    JSON.stringify(
-      result.error
-        ? { error: result.error, details: result.details }
-        : { message: result.message, signature: result.signature }
-    ),
-    {
-      status: result.status,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
-}
