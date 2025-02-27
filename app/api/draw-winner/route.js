@@ -3,18 +3,15 @@ import mongoose from "mongoose";
 import Deposit from "../../../models/Deposit"; // Adjust path
 import Winner from "../../../models/Winner"; // Adjust path
 
-// Solana connection
 const connection = new Connection(
   process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com",
   "confirmed"
 );
 
-// Lottery wallet
 const LOTTERY_WALLET = process.env.LOTTERY_WALLET_PRIVATE_KEY
   ? Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.LOTTERY_WALLET_PRIVATE_KEY)))
   : null;
 
-// MongoDB connection
 const connectDB = async () => {
   if (mongoose.connection.readyState) {
     console.log("Reusing existing DB connection");
@@ -29,20 +26,16 @@ const connectDB = async () => {
   }
 };
 
-// Core draw logic
 const drawWinner = async () => {
   console.log("Starting draw-winner process");
   try {
-    // Ensure DB connection
     await connectDB();
 
-    // Validate lottery wallet
     if (!LOTTERY_WALLET) {
       throw new Error("LOTTERY_WALLET_PRIVATE_KEY is not set or invalid");
     }
     console.log("Lottery wallet public key:", LOTTERY_WALLET.publicKey.toString());
 
-    // Fetch participants
     const deposits = await Deposit.find().lean();
     const participants = deposits.map((deposit) => deposit.walletAddress);
     console.log("Total participants:", participants.length);
@@ -50,28 +43,24 @@ const drawWinner = async () => {
       return { message: "No participants found", status: 200 };
     }
 
-    // Calculate total pot
     const totalPot = deposits.reduce((sum, deposit) => sum + (deposit.amount || 0), 0);
     console.log("Total pot (SOL):", totalPot);
     if (totalPot <= 0) {
       return { message: "No pot to distribute", status: 200 };
     }
 
-    // Select winner
     const winnerIndex = Math.floor(Math.random() * participants.length);
     const winnerAddress = participants[winnerIndex];
-    const potLamports = Math.floor(totalPot * 1e9); // Convert SOL to lamports
+    const potLamports = Math.floor(totalPot * 1e9);
     console.log("Selected winner:", winnerAddress);
 
-    // Check wallet balance
     const balance = await connection.getBalance(LOTTERY_WALLET.publicKey);
-    const requiredLamports = potLamports + 5000; // Include fee estimate
+    const requiredLamports = potLamports + 5000;
     console.log("Wallet balance (lamports):", balance, "Required:", requiredLamports);
     if (balance < requiredLamports) {
       throw new Error(`Insufficient balance: ${balance} lamports, need ${requiredLamports}`);
     }
 
-    // Create and sign transaction
     const { blockhash } = await connection.getLatestBlockhash("confirmed");
     const transaction = new Transaction({
       recentBlockhash: blockhash,
@@ -90,11 +79,21 @@ const drawWinner = async () => {
     });
     console.log("Transaction sent, signature:", signature);
 
-    // Confirm transaction
-    await connection.confirmTransaction(signature, "confirmed");
-    console.log("Transaction confirmed");
+    // Add timeout and better error handling for confirmation
+    console.log("Attempting to confirm transaction...");
+    try {
+      await Promise.race([
+        connection.confirmTransaction(signature, "confirmed"),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Transaction confirmation timeout")), 15000) // 15s timeout
+        ),
+      ]);
+      console.log("Transaction confirmed");
+    } catch (confirmError) {
+      console.error("Confirmation failed:", confirmError.message);
+      throw new Error(`Transaction confirmation failed: ${confirmError.message}`);
+    }
 
-    // Save winner
     const winner = new Winner({
       walletAddress: winnerAddress,
       amount: totalPot,
@@ -103,14 +102,8 @@ const drawWinner = async () => {
     await winner.save();
     console.log("Winner saved to DB");
 
-    // Clear deposits with verification
     const deleteResult = await Deposit.deleteMany({});
     console.log("Deposits deleted, count:", deleteResult.deletedCount);
-    if (deleteResult.deletedCount !== deposits.length) {
-      console.warn("Expected to delete", deposits.length, "but deleted", deleteResult.deletedCount);
-    }
-
-    // Verify deletion
     const remainingDeposits = await Deposit.countDocuments();
     console.log("Remaining deposits after deletion:", remainingDeposits);
     if (remainingDeposits > 0) {
@@ -124,7 +117,6 @@ const drawWinner = async () => {
   }
 };
 
-// GET handler (e.g., for cron jobs)
 export async function GET() {
   const result = await drawWinner();
   return new Response(
@@ -140,7 +132,6 @@ export async function GET() {
   );
 }
 
-// POST handler (e.g., for manual testing)
 export async function POST() {
   const result = await drawWinner();
   return new Response(
