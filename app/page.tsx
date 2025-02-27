@@ -38,9 +38,10 @@ const fetchLatestWinner = async () => {
     }
     const data = await res.json();
     setLatestWinner(data);
-  } catch (err: Error) { // Type err as Error
-    console.error("Error fetching latest winner:", err.message);
-    setError(err.message); // Optional: Display error to user
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("Error fetching latest winner:", errorMessage);
+    setError(errorMessage); // Optional: Display error to user
   }
 };
 
