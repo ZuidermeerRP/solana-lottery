@@ -10,7 +10,7 @@ const LOTTERY_WALLET = process.env.LOTTERY_WALLET_PRIVATE_KEY
   ? Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.LOTTERY_WALLET_PRIVATE_KEY)))
   : null;
 
-export async function POST(request) {
+export async function POST() {  // Removed 'request' parameter
   console.log('Handler called'); // Debug: confirm handler runs
   try {
     if (!LOTTERY_WALLET) {
