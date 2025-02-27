@@ -14,20 +14,17 @@ const LOTTERY_WALLET = process.env.LOTTERY_WALLET_PRIVATE_KEY
   ? Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.LOTTERY_WALLET_PRIVATE_KEY)))
   : null;
 
-// MongoDB connection
+// MongoDB connection (removed deprecated options)
 const connectDB = async () => {
   if (mongoose.connections[0].readyState) {
     console.log("Reusing DB connection");
     return;
   }
-  await mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  await mongoose.connect(process.env.MONGO_URI);
   console.log("DB connected");
 };
 
-// Core draw logic (shared between GET and POST)
+// Core draw logic
 const drawWinner = async () => {
   console.log("/api/draw-winner invoked");
   try {
