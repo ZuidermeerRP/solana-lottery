@@ -1,5 +1,5 @@
 // app/api/submit-deposit/route.js
-import { Connection, SystemProgram } from "@solana/web3.js"; // Removed PublicKey
+import { Connection, SystemProgram } from "@solana/web3.js";
 import Deposit from "../../../models/Deposit";
 import Nonce from "../../../models/Nonce";
 import { NextResponse } from "next/server";
@@ -16,8 +16,11 @@ const connection = new Connection(
   "confirmed"
 );
 const LOTTERY_WALLET_PUBLIC_KEY = "CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28";
-const LOTTERY_AMOUNT = 0.01;
-const TOTAL_LAMPORTS = (LOTTERY_AMOUNT + 0.005) * 1e9;
+const FEE_WALLET_PUBLIC_KEY = "AhYVXTS9ASNLkoUGd5u65F7uaNJSwddfTwnK7yV1YDVr";
+const LOTTERY_AMOUNT = 0.01; // SOL
+const FEE_AMOUNT = 0.005;    // SOL
+const LOTTERY_LAMPORTS = LOTTERY_AMOUNT * 1e9; // 0.01 SOL in lamports
+const FEE_LAMPORTS = FEE_AMOUNT * 1e9;         // 0.005 SOL in lamports
 
 export async function POST(req) {
   try {
@@ -82,40 +85,71 @@ export async function POST(req) {
       );
     }
 
-    const transfer = instructions.find((instr) => {
-      return (
+    // Find all transfer instructions
+    const transfers = instructions.filter(
+      (instr) =>
         instr.programId.toString() === SystemProgram.programId.toString() &&
         instr.parsed?.type === "transfer"
-      );
-    });
+    );
 
-    if (!transfer) {
+    if (transfers.length !== 2) {
       return NextResponse.json(
-        { error: "No valid transfer instruction found" },
+        { error: "Transaction must contain exactly two transfers" },
         { status: 400 }
       );
     }
 
-    const { lamports, destination } = transfer.parsed.info;
-    if (lamports !== TOTAL_LAMPORTS || destination !== LOTTERY_WALLET_PUBLIC_KEY) {
+    // Validate lottery transfer
+    const lotteryTransfer = transfers.find(
+      (t) => t.parsed.info.destination === LOTTERY_WALLET_PUBLIC_KEY
+    );
+    if (!lotteryTransfer) {
+      return NextResponse.json(
+        { error: "No transfer to lottery wallet found" },
+        { status: 400 }
+      );
+    }
+    const { lamports: lotteryLamports } = lotteryTransfer.parsed.info;
+    if (lotteryLamports !== LOTTERY_LAMPORTS) {
       return NextResponse.json(
         {
-          error: "Invalid deposit amount or destination",
-          details: { lamports, expected: TOTAL_LAMPORTS, destination, expected: LOTTERY_WALLET_PUBLIC_KEY },
+          error: "Invalid lottery deposit amount",
+          details: { lamports: lotteryLamports, expected: LOTTERY_LAMPORTS },
         },
         { status: 400 }
       );
     }
 
-// app/api/submit-deposit/route.js (snippet)
-const deposit = new Deposit({
-  walletAddress,
-  amount: LOTTERY_AMOUNT,
-  signature,
-  nonce,
-});
-await deposit.save();
-console.log("Deposit saved:", deposit); // Optional: Add this for debugging
+    // Validate fee transfer
+    const feeTransfer = transfers.find(
+      (t) => t.parsed.info.destination === FEE_WALLET_PUBLIC_KEY
+    );
+    if (!feeTransfer) {
+      return NextResponse.json(
+        { error: "No transfer to fee wallet found" },
+        { status: 400 }
+      );
+    }
+    const { lamports: feeLamports } = feeTransfer.parsed.info;
+    if (feeLamports !== FEE_LAMPORTS) {
+      return NextResponse.json(
+        {
+          error: "Invalid fee amount",
+          details: { lamports: feeLamports, expected: FEE_LAMPORTS },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Save deposit (only tracking lottery amount, not fee)
+    const deposit = new Deposit({
+      walletAddress,
+      amount: LOTTERY_AMOUNT,
+      signature,
+      nonce,
+    });
+    await deposit.save();
+    console.log("Deposit saved:", deposit);
 
     const responseBody = { message: "Deposit verified and saved" };
     console.log("Response body prepared:", responseBody);

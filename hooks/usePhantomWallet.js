@@ -1,6 +1,6 @@
 // hooks/usePhantomWallet.js
 import { useState, useEffect, useCallback } from "react";
-import { Connection, Transaction, PublicKey, SystemProgram } from "@solana/web3.js"; // Added SystemProgram
+import { Connection, Transaction, PublicKey, SystemProgram } from "@solana/web3.js";
 
 export const usePhantomWallet = () => {
   const [walletAddress, setWalletAddress] = useState(null);
@@ -13,7 +13,12 @@ export const usePhantomWallet = () => {
     process.env.NEXT_PUBLIC_SOLANA_RPC ||
     "https://broken-indulgent-model.solana-mainnet.quiknode.pro/55d0255c26cdfc79177b04a002f1d1af920f46c8";
 
-const getConnection = () => {
+  const LOTTERY_WALLET = new PublicKey("CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28");
+  const FEE_WALLET = new PublicKey("AhYVXTS9ASNLkoUGd5u65F7uaNJSwddfTwnK7yV1YDVr");
+  const LOTTERY_AMOUNT = 0.01 * 1e9; // 0.01 SOL in lamports
+  const FEE_AMOUNT = 0.005 * 1e9;    // 0.005 SOL in lamports
+
+  const getConnection = () => {
     return new Connection(RPC_ENDPOINT, { commitment: "confirmed" });
   };
 
@@ -34,24 +39,11 @@ const getConnection = () => {
     try {
       const res = await fetch("/api/csrf-token", {
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
-        },
-      });
-      console.log("Raw CSRF response:", {
-        status: res.status,
-        ok: res.ok,
-        headers: Object.fromEntries(res.headers.entries()),
-        url: res.url,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
       });
       const text = await res.text();
-      console.log("Raw response text:", text);
       const data = JSON.parse(text);
-      console.log("Parsed CSRF data:", data);
-      if (!data.csrfToken) {
-        throw new Error("CSRF token not found in response");
-      }
+      if (!data.csrfToken) throw new Error("CSRF token not found in response");
       return data.csrfToken;
     } catch (error) {
       console.error("CSRF fetch error:", error);
@@ -101,30 +93,23 @@ const getConnection = () => {
         fetchWithTimeout("/api/participants", { credentials: "include" }),
       ]);
 
-      if (!potRes.ok) {
-        const potError = await potRes.text();
-        throw new Error(`Pot fetch failed: ${potRes.status} - ${potError}`);
-      }
-      if (!participantsRes.ok) {
-        const participantsError = await participantsRes.text();
-        throw new Error(`Participants fetch failed: ${participantsRes.status} - ${participantsError}`);
-      }
+      if (!potRes.ok) throw new Error(`Pot fetch failed: ${await potRes.text()}`);
+      if (!participantsRes.ok) throw new Error(`Participants fetch failed: ${await participantsRes.text()}`);
 
       const potData = await potRes.json();
       const participantsData = await participantsRes.json();
 
-      console.log("Fetched participants data:", participantsData.participants);
       setLotteryPot(potData.pot || 0);
       setParticipants([...(participantsData.participants || [])]);
       setError(null);
     } catch (err) {
-      if (err.name === "AbortError") {
-        setError("Request timed out. Please check your network.");
-      } else if (err.message.includes("Failed to fetch")) {
-        setError("Cannot connect to the server. Is it running?");
-      } else {
-        setError("Failed to load lottery data: " + err.message);
-      }
+      setError(
+        err.name === "AbortError"
+          ? "Request timed out. Please check your network."
+          : err.message.includes("Failed to fetch")
+          ? "Cannot connect to the server. Is it running?"
+          : "Failed to load lottery data: " + err.message
+      );
       console.error("Fetch error details:", err);
     }
   }, []);
@@ -136,8 +121,8 @@ const getConnection = () => {
     }
 
     const connection = getConnection();
-    const LAMPORTS_PER_SOL = 1000000000; // 1 SOL = 1,000,000,000 lamports
-    const TOTAL_LAMPORTS = 0.015 * LAMPORTS_PER_SOL; // 0.015 SOL (0.01 deposit + 0.005 fee)
+    const LAMPORTS_PER_SOL = 1e9;
+    const TOTAL_LAMPORTS = LOTTERY_AMOUNT + FEE_AMOUNT; // 0.015 SOL
 
     try {
       // Check wallet balance
@@ -150,50 +135,42 @@ const getConnection = () => {
       }
 
       const csrfToken = await fetchCsrfToken();
-      console.log("CSRF token sent:", csrfToken);
 
+      // Fetch nonce from server (still needed for deposit submission)
       const prepareRes = await fetchWithTimeout("/api/prepare-deposit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
-        },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({ walletAddress }),
         credentials: "include",
       });
-      if (!prepareRes.ok) {
-        const { error } = await prepareRes.json();
-        throw new Error(error || "Failed to prepare deposit");
-      }
-      const { nonce, serializedTx } = await prepareRes.json();
-      console.log("Prepared serializedTx:", serializedTx);
+      if (!prepareRes.ok) throw new Error((await prepareRes.json()).error || "Failed to prepare deposit");
+      const { nonce } = await prepareRes.json();
 
-      const transaction = Transaction.from(Buffer.from(serializedTx, "base64"));
-      const transferInstruction = transaction.instructions.find(
-        (instr) => instr.programId.toString() === SystemProgram.programId.toString()
+      // Create transaction with two transfers
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: new PublicKey(walletAddress),
+          toPubkey: LOTTERY_WALLET,
+          lamports: LOTTERY_AMOUNT,
+        }),
+        SystemProgram.transfer({
+          fromPubkey: new PublicKey(walletAddress),
+          toPubkey: FEE_WALLET,
+          lamports: FEE_AMOUNT,
+        })
       );
-      const lamportsSent = transferInstruction?.data.readBigInt64LE(4); // Offset 4 is lamports in transfer instruction
-      console.log("Prepared transaction lamports:", lamportsSent);
 
-      if (lamportsSent !== BigInt(TOTAL_LAMPORTS)) {
-        throw new Error(
-          `Prepared transaction amount mismatch: expected ${TOTAL_LAMPORTS} lamports, got ${lamportsSent}`
-        );
-      }
+      // Set recent blockhash and fee payer
+      const { blockhash } = await connection.getLatestBlockhash("confirmed");
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = new PublicKey(walletAddress);
 
-      let signature;
-      try {
-        const signResult = await window.solana.signAndSendTransaction(transaction);
-        signature = signResult.signature;
-        console.log("Transaction signature:", signature);
-      } catch (signErr) {
-        if (signErr.message.includes("insufficient funds")) {
-          throw new Error("Insufficient SOL balance detected during transaction signing.");
-        }
-        throw new Error("Failed to sign and send transaction: " + signErr.message);
-      }
+      // Sign and send transaction
+      const { signature } = await window.solana.signAndSendTransaction(transaction);
+      console.log("Transaction signature:", signature);
 
-      const confirmationTimeout = 30000; // 30 seconds timeout
+      // Confirm transaction
+      const confirmationTimeout = 30000;
       let attempts = 0;
       const maxAttempts = 3;
       const startTime = Date.now();
@@ -201,21 +178,19 @@ const getConnection = () => {
       while (attempts < maxAttempts && Date.now() - startTime < confirmationTimeout) {
         try {
           await connection.confirmTransaction(signature, "confirmed");
-          break; // Success, exit loop
+          break;
         } catch (confirmErr) {
           if (++attempts === maxAttempts || Date.now() - startTime >= confirmationTimeout) {
             throw new Error("Transaction confirmation timed out or failed after retries.");
           }
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
 
+      // Submit deposit to server
       const depositRes = await fetchWithTimeout("/api/submit-deposit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
-        },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({ walletAddress, signature, nonce }),
         credentials: "include",
       });
@@ -232,7 +207,7 @@ const getConnection = () => {
       const userFriendlyError =
         err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance")
           ? "Insufficient SOL balance. Please ensure you have at least 0.015 SOL available."
-          : err.message.includes("Failed to") || err.message.includes("timed out") || err.message.includes("mismatch")
+          : err.message.includes("Failed to") || err.message.includes("timed out")
           ? err.message
           : "An unexpected error occurred. Please try again.";
       setError(userFriendlyError);
@@ -241,7 +216,7 @@ const getConnection = () => {
     }
   };
 
-return {
+  return {
     walletAddress,
     currentDateTime,
     lotteryPot,
@@ -250,6 +225,6 @@ return {
     connectToPhantom,
     handleDeposit,
     fetchLotteryData,
-    getConnection, // Add this
+    getConnection,
   };
 };
