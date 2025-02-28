@@ -18,8 +18,8 @@ export default function Home() {
   } = usePhantomWallet();
 
   const [depositSuccess, setDepositSuccess] = useState(false);
-  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false); // Renamed for clarity
-  const [isHowItWorksModalOpen, setIsHowItWorksModalOpen] = useState(false); // New state for How It Works
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isHowItWorksModalOpen, setIsHowItWorksModalOpen] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
   const [transactionSignature, setTransactionSignature] = useState<string | null>(null);
   const [latestWinner, setLatestWinner] = useState<{ winner: string; amount: number; drawnAt: string } | null>(null);
@@ -250,7 +250,7 @@ export default function Home() {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
@@ -272,12 +272,12 @@ export default function Home() {
 
       {isTermsModalOpen && terms && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-15 mt-4">
-          <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-md w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-xl w-full max-h-[80vh] overflow-y-auto relative">
             <h1 className="text-center text-2xl font-extrabold text-white mb-4 mt-2">Terms of Use</h1>
             <p className="text-gray-300 mb-2">
               Last Updated: <span className="font-bold text-green-200">{terms.lastUpdated}</span>
             </p>
-            <ol className="list-decimal list-inside text-gray-300">
+            <ol className="list-decimal list-inside text-gray-300 mb-12">
               {terms.content.map((term, index) => (
                 <li key={index} className="mb-2">
                   <strong>
@@ -290,7 +290,7 @@ export default function Home() {
             </ol>
             <button
               onClick={closeTermsModal}
-              className="mt-4 glow-on-hover rounded-full border border-white bg-white text-gray-800 px-2 py-1 text-xs hover:bg-gray-200 transition-colors"
+              className="fixed bottom-4 left-1/2 transform -translate-x-1/2 rounded-full border border-white bg-white text-gray-800 px-4 py-2 text-sm hover:bg-gray-200 transition duration-200 ease-in-out"
             >
               Close
             </button>
@@ -300,12 +300,12 @@ export default function Home() {
 
       {isHowItWorksModalOpen && howItWorks && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-15 mt-4">
-          <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-md w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-xl w-full max-h-[80vh] overflow-y-auto relative">
             <h1 className="text-center text-2xl font-extrabold text-white mb-4 mt-2">How It Works</h1>
             <p className="text-gray-300 mb-2">
               Last Updated: <span className="font-bold text-green-200">{howItWorks.lastUpdated}</span>
             </p>
-            <ol className="list-decimal list-inside text-gray-300">
+            <ol className="list-decimal list-inside text-gray-300 mb-12">
               {howItWorks.content.map((item, index) => (
                 <li key={index} className="mb-2">
                   <strong>
@@ -318,7 +318,7 @@ export default function Home() {
             </ol>
             <button
               onClick={closeHowItWorksModal}
-              className="mt-4 glow-on-hover rounded-full border border-white bg-white text-gray-800 px-2 py-1 text-xs hover:bg-gray-200 transition-colors"
+              className="fixed bottom-4 left-1/2 transform -translate-x-1/2 rounded-full border border-white bg-white text-gray-800 px-4 py-2 text-sm hover:bg-gray-200 transition duration-200 ease-in-out"
             >
               Close
             </button>
