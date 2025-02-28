@@ -1,6 +1,6 @@
 // hooks/usePhantomWallet.js
 import { useState, useEffect, useCallback } from "react";
-import { Connection, Transaction } from "@solana/web3.js";
+import { Connection, Transaction, PublicKey } from "@solana/web3.js";
 
 export const usePhantomWallet = () => {
   const [walletAddress, setWalletAddress] = useState(null);
@@ -9,7 +9,9 @@ export const usePhantomWallet = () => {
   const [participants, setParticipants] = useState([]);
   const [error, setError] = useState(null);
 
-  const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://broken-indulgent-model.solana-mainnet.quiknode.pro/55d0255c26cdfc79177b04a002f1d1af920f46c8";
+  const RPC_ENDPOINT =
+    process.env.NEXT_PUBLIC_SOLANA_RPC ||
+    "https://broken-indulgent-model.solana-mainnet.quiknode.pro/55d0255c26cdfc79177b04a002f1d1af920f46c8";
 
   const getConnection = () => {
     return new Connection(RPC_ENDPOINT, { commitment: "confirmed" });
@@ -28,34 +30,34 @@ export const usePhantomWallet = () => {
     }
   };
 
-const fetchCsrfToken = async () => {
-  try {
-    const res = await fetch("/api/csrf-token", { 
-      credentials: "include",
-      headers: { 
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
+  const fetchCsrfToken = async () => {
+    try {
+      const res = await fetch("/api/csrf-token", {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
+      });
+      console.log("Raw CSRF response:", {
+        status: res.status,
+        ok: res.ok,
+        headers: Object.fromEntries(res.headers.entries()),
+        url: res.url,
+      });
+      const text = await res.text();
+      console.log("Raw response text:", text);
+      const data = JSON.parse(text);
+      console.log("Parsed CSRF data:", data);
+      if (!data.csrfToken) {
+        throw new Error("CSRF token not found in response");
       }
-    });
-    console.log("Raw CSRF response:", {
-      status: res.status,
-      ok: res.ok,
-      headers: Object.fromEntries(res.headers.entries()),
-      url: res.url
-    });
-    const text = await res.text();
-    console.log("Raw response text:", text);
-    const data = JSON.parse(text);
-    console.log("Parsed CSRF data:", data);
-    if (!data.csrfToken) {
-      throw new Error("CSRF token not found in response");
+      return data.csrfToken;
+    } catch (error) {
+      console.error("CSRF fetch error:", error);
+      throw error;
     }
-    return data.csrfToken;
-  } catch (error) {
-    console.error("CSRF fetch error:", error);
-    throw error;
-  }
-};
+  };
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -134,8 +136,17 @@ const fetchCsrfToken = async () => {
     }
 
     const connection = getConnection();
+    const LAMPORTS_PER_SOL = 1000000000; // 1 SOL = 1,000,000,000 lamports
+    const requiredAmount = 0.015 * LAMPORTS_PER_SOL; // 0.015 SOL in lamports (0.01 deposit + 0.005 fee)
 
     try {
+      // Check wallet balance initially
+      const balance = await connection.getBalance(new PublicKey(walletAddress));
+      if (balance < requiredAmount) {
+        setError("Insufficient SOL balance. You need at least 0.015 SOL (0.01 deposit + 0.005 fee).");
+        return false;
+      }
+
       const csrfToken = await fetchCsrfToken();
       console.log("CSRF token sent:", csrfToken);
       const prepareRes = await fetchWithTimeout("/api/prepare-deposit", {
@@ -154,18 +165,35 @@ const fetchCsrfToken = async () => {
       const { nonce, serializedTx } = await prepareRes.json();
 
       const transaction = Transaction.from(Buffer.from(serializedTx, "base64"));
-      const { signature } = await window.solana.signAndSendTransaction(transaction);
-      console.log("Transaction signature:", signature);
 
+      // Sign and send transaction with better error handling
+      let signature;
+      try {
+        const signResult = await window.solana.signAndSendTransaction(transaction);
+        signature = signResult.signature;
+        console.log("Transaction signature:", signature);
+      } catch (signErr) {
+        if (signErr.message.includes("insufficient funds")) {
+          throw new Error("Insufficient SOL balance detected during transaction signing.");
+        }
+        throw new Error("Failed to sign and send transaction: " + signErr.message);
+      }
+
+      // Confirm transaction with timeout
+      const confirmationTimeout = 30000; // 30 seconds timeout
       let attempts = 0;
       const maxAttempts = 3;
-      while (attempts < maxAttempts) {
+      const startTime = Date.now();
+
+      while (attempts < maxAttempts && Date.now() - startTime < confirmationTimeout) {
         try {
           await connection.confirmTransaction(signature, "confirmed");
-          break;
-        } catch (err) {
-          if (++attempts === maxAttempts) throw new Error("Transaction confirmation failed after retries");
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          break; // Success, exit loop
+        } catch (confirmErr) {
+          if (++attempts === maxAttempts || Date.now() - startTime >= confirmationTimeout) {
+            throw new Error("Transaction confirmation timed out or failed after retries.");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
         }
       }
 
@@ -188,9 +216,12 @@ const fetchCsrfToken = async () => {
       setError(null);
       return signature;
     } catch (err) {
-      const userFriendlyError = err.message.includes("Failed to")
-        ? err.message
-        : "An unexpected error occurred. Please try again.";
+      const userFriendlyError =
+        err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance")
+          ? "Insufficient SOL balance. Please ensure you have at least 0.015 SOL available."
+          : err.message.includes("Failed to") || err.message.includes("timed out")
+          ? err.message
+          : "An unexpected error occurred. Please try again.";
       setError(userFriendlyError);
       console.error("Deposit error full details:", err);
       return false;
