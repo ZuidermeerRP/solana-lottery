@@ -22,8 +22,13 @@ export default function Home() {
   const [isHowItWorksModalOpen, setIsHowItWorksModalOpen] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
   const [transactionSignature, setTransactionSignature] = useState<string | null>(null);
-  const [latestWinner, setLatestWinner] = useState<{ winner: string; amount: number; drawnAt: string } | null>(null);
-  const [showPopup, setShowPopup] = useState<"tx" | "winner" | null>(null);
+  const [latestWinner, setLatestWinner] = useState<{
+    winner: string;
+    amount: number;
+    drawnAt: string;
+    payoutSignature?: string; // Optional field for payout signature
+  } | null>(null);
+  const [showPopup, setShowPopup] = useState<"tx" | "winner" | "payout" | null>(null);
   const [terms, setTerms] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
   const [howItWorks, setHowItWorks] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
 
@@ -119,6 +124,14 @@ export default function Home() {
     }
   };
 
+  const copyPayoutSignatureToClipboard = () => {
+    if (latestWinner?.payoutSignature) {
+      navigator.clipboard.writeText(latestWinner.payoutSignature);
+      setShowPopup("payout");
+      setTimeout(() => setShowPopup(null), 2000);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full text-center text-lg text-gray-300 mb-4 fixed top-0 left-0 z-50 glow-bottom-border">
@@ -180,9 +193,25 @@ export default function Home() {
               <span className="font-bold text-green-200">
                 {new Date(latestWinner.drawnAt).toLocaleDateString("en-NL", { timeZone: "Europe/Amsterdam" })}
               </span>
+              {latestWinner.payoutSignature && (
+                <>
+                  {" "}
+                  <span
+                    onClick={copyPayoutSignatureToClipboard}
+                    className="text-xs text-gray-500 cursor-pointer hover:underline"
+                  >
+                    (Tx: {shortenAddress(latestWinner.payoutSignature)})
+                  </span>
+                </>
+              )}
               {showPopup === "winner" && (
                 <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">
                   Copied!
+                </span>
+              )}
+              {showPopup === "payout" && (
+                <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                  Copied Tx!
                 </span>
               )}
             </p>

@@ -1,3 +1,4 @@
+// app/api/latest-winner/route.js
 import { createHandler } from "../../../lib/handler";
 import Winner from "../../../models/Winner";
 import mongoose from "mongoose";
@@ -24,5 +25,6 @@ export const GET = createHandler(async () => {
     winner: latestWinner ? latestWinner.walletAddress : null,
     amount: latestWinner ? latestWinner.amount : 0,
     drawnAt: latestWinner ? latestWinner.drawnAt : null,
+    payoutSignature: latestWinner ? latestWinner.payoutSignature : null, // Add payoutSignature
   };
 });
