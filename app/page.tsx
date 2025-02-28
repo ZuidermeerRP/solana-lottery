@@ -23,11 +23,26 @@ export default function Home() {
   const [transactionSignature, setTransactionSignature] = useState<string | null>(null);
   const [latestWinner, setLatestWinner] = useState<{ winner: string; amount: number; drawnAt: string } | null>(null);
   const [showPopup, setShowPopup] = useState<"tx" | "winner" | null>(null);
+  const [terms, setTerms] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
 
   useEffect(() => {
     fetchLotteryData();
     fetchLatestWinner();
   }, [fetchLotteryData]);
+
+  useEffect(() => {
+    const fetchTerms = async () => {
+      try {
+        const res = await fetch("/api/terms", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to fetch terms");
+        const data = await res.json();
+        setTerms(data);
+      } catch (err) {
+        console.error("Error fetching terms:", err);
+      }
+    };
+    fetchTerms();
+  }, []);
 
   const fetchLatestWinner = async () => {
     try {
@@ -232,113 +247,23 @@ export default function Home() {
         </span>
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && terms && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-15 mt-4">
           <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-md w-full max-h-[80vh] overflow-y-auto">
             <h1 className="text-center text-2xl font-extrabold text-white mb-4 mt-2">Terms of Use</h1>
             <p className="text-gray-300 mb-2">
-              Last Updated: <span className="font-bold text-green-200">26-02-2025</span>
+              Last Updated: <span className="font-bold text-green-200">{terms.lastUpdated}</span>
             </p>
             <ol className="list-decimal list-inside text-gray-300">
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Acceptance of Terms:</span>
-                </strong>
-                <br />
-                By accessing or using our Solana Lottery website ("Website"), you agree to comply with and be
-                bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not
-                use the Website.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Eligibility:</span>
-                </strong>
-                <br />
-                You must be at least 18 years old to use this Website. By using this Website, you represent and warrant
-                that you are at least 18 years old and have the legal capacity to enter into these Terms.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">User Responsibilities:</span>
-                </strong>
-                <br />
-                As a user of the Website, you agree to:
-                <ul className="list-disc list-inside">
-                  <li>Use the Website in compliance with all applicable laws and regulations.</li>
-                  <li>Provide accurate and complete information when registering or participating in the lottery.</li>
-                  <li>Maintain the security of your account and promptly notify us of any unauthorized use.</li>
-                </ul>
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Lottery Participation:</span>
-                </strong>
-                <br />
-                Participation in the lottery is at your own risk and responsibility. We are not responsible for any
-                losses or damages incurred as a result of participating in the lottery.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">No Refund Policy:</span>
-                </strong>
-                <br />
-                All purchases made on the Website are final and non-refundable. By participating in the lottery, you
-                acknowledge and agree that you will not receive a refund for any reason.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Intellectual Property:</span>
-                </strong>
-                <br />
-                All content on the Website, including text, graphics, logos, and software, is the property of [Your
-                Company Name] and is protected by applicable intellectual property laws. You may not reproduce,
-                distribute, or create derivative works from any content on the Website without our prior written
-                consent.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Disclaimer of Warranties:</span>
-                </strong>
-                <br />
-                The Website is provided on an "as is" and "as available" basis. We make no
-                representations or warranties of any kind, express or implied, regarding the operation or availability
-                of the Website, or the accuracy, completeness, or reliability of any information provided on the
-                Website.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Limitation of Liability:</span>
-                </strong>
-                <br />
-                To the fullest extent permitted by applicable law, we shall not be liable for any indirect, incidental,
-                special, or consequential damages arising out of or in connection with your use of the Website, even if
-                we have been advised of the possibility of such damages.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Changes to the Terms:</span>
-                </strong>
-                <br />
-                We reserve the right to modify or update these Terms at any time. Any changes will be effective
-                immediately upon posting on the Website. Your continued use of the Website after the posting of changes
-                constitutes your acceptance of the modified Terms.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Governing Law:</span>
-                </strong>
-                <br />
-                These Terms shall be governed by and construed in accordance with the laws of [Your Country/State],
-                without regard to its conflict of law principles.
-              </li>
-              <li className="mb-2">
-                <strong>
-                  <span className="font-bold text-green-200">Contact Information:</span>
-                </strong>
-                <br />
-                If you have any questions or concerns about these Terms, please contact us at [Your Contact
-                Information].
-              </li>
+              {terms.content.map((term, index) => (
+                <li key={index} className="mb-2">
+                  <strong>
+                    <span className="font-bold text-green-200">{term.title}:</span>
+                  </strong>
+                  <br />
+                  {term.text}
+                </li>
+              ))}
             </ol>
             <button
               onClick={closeModal}
