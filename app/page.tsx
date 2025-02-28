@@ -46,7 +46,7 @@ export default function Home() {
       checkVipStatus();
       fetchDepositCount();
     }
-  }, [fetchLotteryData, walletAddress]);
+  }, [fetchLotteryData, walletAddress, checkVipStatus, fetchDepositCount]); // Added missing dependencies
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -117,7 +117,7 @@ export default function Home() {
 
   const onDeposit = async () => {
     if (!isVip && depositCount >= 3) {
-      alert("You’ve reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!");
+      alert("You've reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!"); // Escaped single quote
       return;
     }
     setIsDepositing(true);
@@ -189,7 +189,7 @@ export default function Home() {
         if (signErr.message.includes("insufficient funds")) {
           throw new Error("Insufficient SOL balance during signing. Please ensure you have at least 0.01 SOL.");
         }
-        throw signErr; // Re-throw other signing errors
+        throw signErr;
       }
 
       await connection.confirmTransaction(signature, "confirmed");
@@ -494,13 +494,13 @@ export default function Home() {
               Last Updated: <span className="font-bold text-green-200">{howItWorks.lastUpdated}</span>
             </p>
             <ol className="list-decimal list-inside text-gray-300 mb-12">
-              {terms.content.map((term, index) => (
+              {howItWorks.content.map((item, index) => (
                 <li key={index} className="mb-2">
                   <strong>
-                    <span className="font-bold text-green-200">{term.title}:</span>
+                    <span className="font-bold text-green-200">{item.title}:</span>
                   </strong>
                   <br />
-                  {term.text}
+                  {item.text}
                 </li>
               ))}
             </ol>
