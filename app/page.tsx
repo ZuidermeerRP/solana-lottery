@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react"; // Added useCallback
+import { useState, useEffect, useCallback } from "react";
 import { usePhantomWallet } from "../hooks/usePhantomWallet";
 import { Transaction, PublicKey } from "@solana/web3.js";
 
@@ -49,7 +49,7 @@ export default function Home() {
     } catch (err) {
       console.error("Error checking VIP status:", err);
     }
-  }, [walletAddress]); // Dependency: walletAddress
+  }, [walletAddress]);
 
   const fetchDepositCount = useCallback(async () => {
     if (!walletAddress) return;
@@ -62,7 +62,7 @@ export default function Home() {
     } catch (err) {
       console.error("Error fetching deposit count:", err);
     }
-  }, [walletAddress]); // Dependency: walletAddress
+  }, [walletAddress]);
 
   useEffect(() => {
     fetchLotteryData();
@@ -117,7 +117,7 @@ export default function Home() {
 
   const onDeposit = async () => {
     if (!isVip && depositCount >= 3) {
-      alert("You\'ve reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!"); // Escaped single quote
+      alert("You\'ve reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!");
       return;
     }
     setIsDepositing(true);
@@ -428,7 +428,7 @@ export default function Home() {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today\'s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
