@@ -250,7 +250,7 @@ export default function Home() {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
