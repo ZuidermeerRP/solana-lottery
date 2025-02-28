@@ -197,7 +197,7 @@ export default function Home() {
         signature = signResult.signature;
         console.log("VIP transaction signature:", signature);
       } catch (signErr) {
-        if (signErr.message.includes("insufficient funds")) {
+        if (signErr instanceof Error && signErr.message.includes("insufficient funds")) {
           throw new Error("Insufficient SOL balance during signing. Please ensure you have at least 0.01 SOL.");
         }
         throw signErr;
@@ -226,7 +226,7 @@ export default function Home() {
     } catch (err) {
       console.error("VIP payment failed:", err);
       const userFriendlyError =
-        err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance")
+        err instanceof Error && (err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance"))
           ? err.message
           : "Failed to become VIP. Transaction may have failed or timed out. Check your wallet and try again.";
       alert(userFriendlyError);
@@ -439,7 +439,7 @@ export default function Home() {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today&#39;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
