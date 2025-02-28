@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // Added useCallback
 import { usePhantomWallet } from "../hooks/usePhantomWallet";
 import { Transaction, PublicKey } from "@solana/web3.js";
 
@@ -39,6 +39,31 @@ export default function Home() {
 
   const connection = getConnection();
 
+  const checkVipStatus = useCallback(async () => {
+    if (!walletAddress) return;
+    try {
+      const res = await fetch(`/api/check-vip?walletAddress=${walletAddress}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check VIP status");
+      const { isVip } = await res.json();
+      setIsVip(isVip);
+    } catch (err) {
+      console.error("Error checking VIP status:", err);
+    }
+  }, [walletAddress]); // Dependency: walletAddress
+
+  const fetchDepositCount = useCallback(async () => {
+    if (!walletAddress) return;
+    try {
+      const res = await fetch(`/api/deposit-count?walletAddress=${walletAddress}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch deposit count");
+      const { count } = await res.json();
+      console.log("Fetched deposit count:", count);
+      setDepositCount(count);
+    } catch (err) {
+      console.error("Error fetching deposit count:", err);
+    }
+  }, [walletAddress]); // Dependency: walletAddress
+
   useEffect(() => {
     fetchLotteryData();
     fetchLatestWinner();
@@ -46,7 +71,7 @@ export default function Home() {
       checkVipStatus();
       fetchDepositCount();
     }
-  }, [fetchLotteryData, walletAddress, checkVipStatus, fetchDepositCount]); // Added missing dependencies
+  }, [fetchLotteryData, walletAddress, checkVipStatus, fetchDepositCount]);
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -90,34 +115,9 @@ export default function Home() {
     }
   };
 
-  const checkVipStatus = async () => {
-    if (!walletAddress) return;
-    try {
-      const res = await fetch(`/api/check-vip?walletAddress=${walletAddress}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to check VIP status");
-      const { isVip } = await res.json();
-      setIsVip(isVip);
-    } catch (err) {
-      console.error("Error checking VIP status:", err);
-    }
-  };
-
-  const fetchDepositCount = async () => {
-    if (!walletAddress) return;
-    try {
-      const res = await fetch(`/api/deposit-count?walletAddress=${walletAddress}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch deposit count");
-      const { count } = await res.json();
-      console.log("Fetched deposit count:", count);
-      setDepositCount(count);
-    } catch (err) {
-      console.error("Error fetching deposit count:", err);
-    }
-  };
-
   const onDeposit = async () => {
     if (!isVip && depositCount >= 3) {
-      alert("You've reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!"); // Escaped single quote
+      alert("You\'ve reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!"); // Escaped single quote
       return;
     }
     setIsDepositing(true);
