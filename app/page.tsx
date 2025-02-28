@@ -18,14 +18,12 @@ export default function Home() {
   } = usePhantomWallet();
 
   const [depositSuccess, setDepositSuccess] = useState(false);
-  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
-  const [isHowItWorksModalOpen, setIsHowItWorksModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
   const [transactionSignature, setTransactionSignature] = useState<string | null>(null);
   const [latestWinner, setLatestWinner] = useState<{ winner: string; amount: number; drawnAt: string } | null>(null);
   const [showPopup, setShowPopup] = useState<"tx" | "winner" | null>(null);
   const [terms, setTerms] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
-  const [howItWorks, setHowItWorks] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
 
   useEffect(() => {
     fetchLotteryData();
@@ -43,20 +41,7 @@ export default function Home() {
         console.error("Error fetching terms:", err);
       }
     };
-
-    const fetchHowItWorks = async () => {
-      try {
-        const res = await fetch("/api/how-it-works", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to fetch how it works");
-        const data = await res.json();
-        setHowItWorks(data);
-      } catch (err) {
-        console.error("Error fetching how it works:", err);
-      }
-    };
-
     fetchTerms();
-    fetchHowItWorks();
   }, []);
 
   const fetchLatestWinner = async () => {
@@ -93,10 +78,8 @@ export default function Home() {
     }
   };
 
-  const openTermsModal = () => setIsTermsModalOpen(true);
-  const closeTermsModal = () => setIsTermsModalOpen(false);
-  const openHowItWorksModal = () => setIsHowItWorksModalOpen(true);
-  const closeHowItWorksModal = () => setIsHowItWorksModalOpen(false);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   const shortenAddress = (addr: string | null | undefined) => {
     if (!addr || typeof addr !== "string") return "";
@@ -250,27 +233,21 @@ export default function Home() {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
 
-      <div className="flex space-x-4 mt-5">
+      <div className="flex space-x-2 mt-5">
         <span
-          onClick={openTermsModal}
+          onClick={openModal}
           className="cursor-pointer text-white font-bold hover:underline transition-colors glow"
         >
           Terms of Use
         </span>
-        <span
-          onClick={openHowItWorksModal}
-          className="cursor-pointer text-white font-bold hover:underline transition-colors glow"
-        >
-          How It Works
-        </span>
       </div>
 
-      {isTermsModalOpen && terms && (
+      {isModalOpen && terms && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-15 mt-4">
           <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-md w-full max-h-[80vh] overflow-y-auto">
             <h1 className="text-center text-2xl font-extrabold text-white mb-4 mt-2">Terms of Use</h1>
@@ -289,35 +266,7 @@ export default function Home() {
               ))}
             </ol>
             <button
-              onClick={closeTermsModal}
-              className="mt-4 glow-on-hover rounded-full border border-white bg-white text-gray-800 px-2 py-1 text-xs hover:bg-gray-200 transition-colors"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isHowItWorksModalOpen && howItWorks && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-15 mt-4">
-          <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <h1 className="text-center text-2xl font-extrabold text-white mb-4 mt-2">How It Works</h1>
-            <p className="text-gray-300 mb-2">
-              Last Updated: <span className="font-bold text-green-200">{howItWorks.lastUpdated}</span>
-            </p>
-            <ol className="list-decimal list-inside text-gray-300">
-              {howItWorks.content.map((item, index) => (
-                <li key={index} className="mb-2">
-                  <strong>
-                    <span className="font-bold text-green-200">{item.title}:</span>
-                  </strong>
-                  <br />
-                  {item.text}
-                </li>
-              ))}
-            </ol>
-            <button
-              onClick={closeHowItWorksModal}
+              onClick={closeModal}
               className="mt-4 glow-on-hover rounded-full border border-white bg-white text-gray-800 px-2 py-1 text-xs hover:bg-gray-200 transition-colors"
             >
               Close
