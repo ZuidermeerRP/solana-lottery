@@ -29,21 +29,20 @@ export default function Home() {
     fetchLatestWinner();
   }, [fetchLotteryData]);
 
-const fetchLatestWinner = async () => {
-  try {
-    const res = await fetch("/api/latest-winner", { credentials: "include" });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Failed to fetch latest winner: ${res.status} - ${text}`);
+  const fetchLatestWinner = async () => {
+    try {
+      const res = await fetch("/api/latest-winner", { credentials: "include" });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed to fetch latest winner: ${res.status} - ${text}`);
+      }
+      const data = await res.json();
+      setLatestWinner(data);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Error fetching latest winner:", errorMessage);
     }
-    const data = await res.json();
-    setLatestWinner(data);
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error("Error fetching latest winner:", errorMessage);
-    // Removed: setError(errorMessage);
-  }
-};
+  };
 
   const onDeposit = async () => {
     setIsDepositing(true);
@@ -122,10 +121,12 @@ const fetchLatestWinner = async () => {
 
       <h1 className="text-center text-6xl font-extrabold text-white mt-1 glow">Solana Lottery</h1>
 
-      <div className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-md w-full mt-10 glow-border relative">
+      <div className="bg-gray-800 shadow-lg rounded-lg p-10 max-w-lg w-full mt-10 glow-border relative">
         <main className="flex flex-col items-center">
           <p className="text-xl text-center text-gray-300 mb-3">
-            🎉 Daily Lottery Draw at <span className="font-bold text-green-400">21:00 (CET)</span>! 🎉
+            🎉 Daily Lottery 🎉
+            <br />
+            🎉 Draw between 21:00-22:00 (CET)! 🎉
           </p>
           <p className="text-lg text-center text-gray-300 mb-4">
             Current Lottery Pot: <span className="font-bold text-green-200">{lotteryPot} $SOL</span>
@@ -217,7 +218,7 @@ const fetchLatestWinner = async () => {
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
@@ -244,8 +245,8 @@ const fetchLatestWinner = async () => {
                   <span className="font-bold text-green-200">Acceptance of Terms:</span>
                 </strong>
                 <br />
-                By accessing or using our Solana Lottery website (&quot;Website&quot;), you agree to comply with and be
-                bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you must not
+                By accessing or using our Solana Lottery website ("Website"), you agree to comply with and be
+                bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not
                 use the Website.
               </li>
               <li className="mb-2">
@@ -299,7 +300,7 @@ const fetchLatestWinner = async () => {
                   <span className="font-bold text-green-200">Disclaimer of Warranties:</span>
                 </strong>
                 <br />
-                The Website is provided on an &quot;as is&quot; and &quot;as available&quot; basis. We make no
+                The Website is provided on an "as is" and "as available" basis. We make no
                 representations or warranties of any kind, express or implied, regarding the operation or availability
                 of the Website, or the accuracy, completeness, or reliability of any information provided on the
                 Website.
@@ -350,4 +351,4 @@ const fetchLatestWinner = async () => {
       )}
     </div>
   );
-}//
+}
