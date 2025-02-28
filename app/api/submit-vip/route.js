@@ -1,6 +1,6 @@
-// app/api/submit-deposit/route.js
-import { Connection, SystemProgram } from "@solana/web3.js"; // Removed PublicKey
-import Deposit from "../../../models/Deposit";
+// app/api/submit-vip/route.js
+import { Connection, SystemProgram } from "@solana/web3.js";
+import Vip from "../../../models/Vip";
 import Nonce from "../../../models/Nonce";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
@@ -16,8 +16,7 @@ const connection = new Connection(
   "confirmed"
 );
 const LOTTERY_WALLET_PUBLIC_KEY = "CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28";
-const LOTTERY_AMOUNT = 0.01;
-const TOTAL_LAMPORTS = (LOTTERY_AMOUNT + 0.005) * 1e9;
+const VIP_LAMPORTS = 0.01 * 1e9;
 
 export async function POST(req) {
   try {
@@ -26,26 +25,19 @@ export async function POST(req) {
     const { walletAddress, signature, nonce } = await req.json();
     const csrfTokenHeader = req.headers.get("x-csrf-token");
 
-    console.log("Client CSRF Token (submit-deposit):", csrfTokenHeader);
+    console.log("Client CSRF Token (submit-vip):", csrfTokenHeader);
 
     if (!csrfTokenHeader) {
-      return NextResponse.json(
-        { error: "CSRF token missing" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "CSRF token missing" }, { status: 403 });
     }
 
-    // Validate CSRF token and delete it
     const csrfNonceDoc = await Nonce.findOneAndDelete({
       walletAddress: "csrf-token",
       nonce: csrfTokenHeader,
     });
 
     if (!csrfNonceDoc || csrfNonceDoc.expiresAt < new Date()) {
-      return NextResponse.json(
-        { error: "Invalid or expired CSRF token" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Invalid or expired CSRF token" }, { status: 403 });
     }
 
     if (!walletAddress || !signature || !nonce) {
@@ -57,10 +49,7 @@ export async function POST(req) {
 
     const nonceDoc = await Nonce.findOneAndDelete({ walletAddress, nonce });
     if (!nonceDoc) {
-      return NextResponse.json(
-        { error: "Invalid or expired nonce" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid or expired nonce" }, { status: 400 });
     }
 
     const tx = await connection.getParsedTransaction(signature, {
@@ -97,36 +86,35 @@ export async function POST(req) {
     }
 
     const { lamports, destination } = transfer.parsed.info;
-    if (lamports !== TOTAL_LAMPORTS || destination !== LOTTERY_WALLET_PUBLIC_KEY) {
+    if (lamports !== VIP_LAMPORTS || destination !== LOTTERY_WALLET_PUBLIC_KEY) {
       return NextResponse.json(
         {
-          error: "Invalid deposit amount or destination",
-          details: { lamports, expected: TOTAL_LAMPORTS, destination, expected: LOTTERY_WALLET_PUBLIC_KEY },
+          error: "Invalid VIP payment amount or destination",
+          details: { lamports, expected: VIP_LAMPORTS, destination, expected: LOTTERY_WALLET_PUBLIC_KEY },
         },
         { status: 400 }
       );
     }
 
-// app/api/submit-deposit/route.js (snippet)
-const deposit = new Deposit({
-  walletAddress,
-  amount: LOTTERY_AMOUNT,
-  signature,
-  nonce,
-});
-await deposit.save();
-console.log("Deposit saved:", deposit); // Optional: Add this for debugging
+    // Save VIP status (24-hour expiration)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    await Vip.findOneAndUpdate(
+      { walletAddress },
+      { activatedAt: new Date(), expiresAt },
+      { upsert: true, new: true }
+    );
 
-    const responseBody = { message: "Deposit verified and saved" };
+    const responseBody = { message: "VIP status activated" };
     console.log("Response body prepared:", responseBody);
 
     return NextResponse.json(responseBody, {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in submit-deposit:", error.stack);
+    console.error("Error in submit-vip:", error.stack);
     return NextResponse.json(
-      { error: "Failed to process deposit", details: error.message },
+      { error: "Failed to process VIP payment", details: error.message },
       { status: 500 }
     );
   }

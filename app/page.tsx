@@ -4,6 +4,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePhantomWallet } from "../hooks/usePhantomWallet";
+import { Transaction, PublicKey } from "@solana/web3.js";
 
 export default function Home() {
   const {
@@ -15,27 +16,37 @@ export default function Home() {
     lotteryPot,
     participants,
     error,
+    getConnection,
   } = usePhantomWallet();
 
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [isHowItWorksModalOpen, setIsHowItWorksModalOpen] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
+  const [isPurchasingVip, setIsPurchasingVip] = useState(false);
   const [transactionSignature, setTransactionSignature] = useState<string | null>(null);
   const [latestWinner, setLatestWinner] = useState<{
     winner: string;
     amount: number;
     drawnAt: string;
-    payoutSignature?: string; // Optional field for payout signature
+    payoutSignature?: string;
   } | null>(null);
-  const [showPopup, setShowPopup] = useState<"tx" | "winner" | "payout" | null>(null);
+  const [showPopup, setShowPopup] = useState<"tx" | "winner" | "payout" | "vip" | null>(null);
   const [terms, setTerms] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
   const [howItWorks, setHowItWorks] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
+  const [isVip, setIsVip] = useState(false);
+  const [depositCount, setDepositCount] = useState(0);
+
+  const connection = getConnection();
 
   useEffect(() => {
     fetchLotteryData();
     fetchLatestWinner();
-  }, [fetchLotteryData]);
+    if (walletAddress) {
+      checkVipStatus();
+      fetchDepositCount();
+    }
+  }, [fetchLotteryData, walletAddress]);
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -73,13 +84,42 @@ export default function Home() {
       }
       const data = await res.json();
       setLatestWinner(data);
-    } catch (err: unknown) {
+    } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error("Error fetching latest winner:", errorMessage);
     }
   };
 
+  const checkVipStatus = async () => {
+    if (!walletAddress) return;
+    try {
+      const res = await fetch(`/api/check-vip?walletAddress=${walletAddress}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check VIP status");
+      const { isVip } = await res.json();
+      setIsVip(isVip);
+    } catch (err) {
+      console.error("Error checking VIP status:", err);
+    }
+  };
+
+  const fetchDepositCount = async () => {
+    if (!walletAddress) return;
+    try {
+      const res = await fetch(`/api/deposit-count?walletAddress=${walletAddress}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch deposit count");
+      const { count } = await res.json();
+      console.log("Fetched deposit count:", count);
+      setDepositCount(count);
+    } catch (err) {
+      console.error("Error fetching deposit count:", err);
+    }
+  };
+
   const onDeposit = async () => {
+    if (!isVip && depositCount >= 3) {
+      alert("You’ve reached the 3-deposit limit. Upgrade to VIP for unlimited deposits!");
+      return;
+    }
     setIsDepositing(true);
     setDepositSuccess(false);
     setTransactionSignature(null);
@@ -90,11 +130,97 @@ export default function Home() {
         setTransactionSignature(result);
         setDepositSuccess(true);
         await fetchLotteryData();
+        await fetchDepositCount();
       }
     } catch (err) {
       console.error("Deposit failed:", err);
     } finally {
       setIsDepositing(false);
+    }
+  };
+
+  const onBecomeVip = async () => {
+    if (!walletAddress) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+
+    setIsPurchasingVip(true);
+    try {
+      const LAMPORTS_PER_SOL = 1000000000;
+      const VIP_LAMPORTS = 0.01 * LAMPORTS_PER_SOL;
+
+      const balance = await connection.getBalance(new PublicKey(walletAddress));
+      if (balance < VIP_LAMPORTS) {
+        throw new Error(
+          `Insufficient SOL balance. Need ${VIP_LAMPORTS / LAMPORTS_PER_SOL} SOL, have ${balance / LAMPORTS_PER_SOL} SOL`
+        );
+      }
+
+      const csrfRes = await fetch("/api/csrf-token", { credentials: "include" });
+      const { csrfToken } = await csrfRes.json();
+
+      const prepareRes = await fetch("/api/prepare-vip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
+        body: JSON.stringify({ walletAddress }),
+        credentials: "include",
+      });
+
+      if (!prepareRes.ok) {
+        const text = await prepareRes.text();
+        console.error("Prepare VIP response:", { status: prepareRes.status, text });
+        throw new Error(`Failed to prepare VIP payment: ${prepareRes.status} - ${text}`);
+      }
+
+      const { nonce, serializedTx } = await prepareRes.json();
+      console.log("Prepared VIP serializedTx:", serializedTx);
+
+      const transaction = Transaction.from(Buffer.from(serializedTx, "base64"));
+      let signature;
+      try {
+        const signResult = await window.solana.signAndSendTransaction(transaction);
+        signature = signResult.signature;
+        console.log("VIP transaction signature:", signature);
+      } catch (signErr) {
+        if (signErr.message.includes("insufficient funds")) {
+          throw new Error("Insufficient SOL balance during signing. Please ensure you have at least 0.01 SOL.");
+        }
+        throw signErr; // Re-throw other signing errors
+      }
+
+      await connection.confirmTransaction(signature, "confirmed");
+
+      const submitRes = await fetch("/api/submit-vip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
+        body: JSON.stringify({ walletAddress, signature, nonce }),
+        credentials: "include",
+      });
+
+      if (!submitRes.ok) {
+        const { error } = await submitRes.json();
+        throw new Error(error || "Failed to submit VIP payment");
+      }
+
+      setIsVip(true);
+      setShowPopup("vip");
+      setTimeout(() => setShowPopup(null), 2000);
+    } catch (err) {
+      console.error("VIP payment failed:", err);
+      const userFriendlyError =
+        err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance")
+          ? err.message
+          : "Failed to become VIP. Transaction may have failed or timed out. Check your wallet and try again.";
+      alert(userFriendlyError);
+    } finally {
+      setIsPurchasingVip(false);
     }
   };
 
@@ -242,7 +368,7 @@ export default function Home() {
           {walletAddress && (
             <p className="text-sm text-center text-gray-400 mb-4">
               <span className="font-bold text-white">Connected Wallet:</span>{" "}
-              <span className="font-bold text-green-200">{walletAddress}</span>
+              <span className="font-bold text-green-200">{shortenAddress(walletAddress)}</span>
             </p>
           )}
 
@@ -253,8 +379,25 @@ export default function Home() {
             </p>
           )}
 
+          {walletAddress && (
+            <p className="text-sm text-center text-gray-400 mb-4">
+              <span className="font-bold text-white">Deposits Today:</span>{" "}
+              <span className="font-bold text-green-200">{isVip ? "Unlimited (VIP)" : `${depositCount}/3`}</span>
+            </p>
+          )}
+
           {isDepositing && (
-            <p className="text-sm text-center text-yellow-400 mb-4">⏳ Depositing, please wait... ⏳</p>
+            <p className="text-sm text-center text-yellow-400 mb-4">
+              ⏳ Depositing, please wait...{" "}
+              <span className="inline-block w-4 h-4 border-2 border-t-transparent border-yellow-400 rounded-full animate-spin"></span>
+            </p>
+          )}
+
+          {isPurchasingVip && (
+            <p className="text-sm text-center text-yellow-400 mb-4">
+              ⏳ Purchasing VIP, please wait...{" "}
+              <span className="inline-block w-4 h-4 border-2 border-t-transparent border-yellow-400 rounded-full animate-spin"></span>
+            </p>
           )}
 
           {depositSuccess && (
@@ -276,10 +419,16 @@ export default function Home() {
             </p>
           )}
 
+          {showPopup === "vip" && (
+            <p className="text-sm text-center text-yellow-400 mb-4 relative">
+              🎖️ VIP status activated! Enjoy unlimited deposits for 24 hours! 🎖️
+            </p>
+          )}
+
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
           <p className="text-sm text-center text-gray-300">
-            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+            Today's date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
           </p>
         </main>
       </div>
@@ -297,6 +446,16 @@ export default function Home() {
         >
           How It Works
         </span>
+        {walletAddress && (
+          <span
+            onClick={!isVip && !isPurchasingVip ? onBecomeVip : undefined}
+            className={`cursor-pointer text-white font-bold hover:underline transition-colors ${
+              isVip || isPurchasingVip ? "gold-glow opacity-50 cursor-not-allowed" : "gold-glow"
+            }`}
+          >
+            {isVip ? "VIP Active" : isPurchasingVip ? "Purchasing VIP..." : "Become VIP (0.01 SOL)"}
+          </span>
+        )}
       </div>
 
       {isTermsModalOpen && terms && (
@@ -335,13 +494,13 @@ export default function Home() {
               Last Updated: <span className="font-bold text-green-200">{howItWorks.lastUpdated}</span>
             </p>
             <ol className="list-decimal list-inside text-gray-300 mb-12">
-              {howItWorks.content.map((item, index) => (
+              {terms.content.map((term, index) => (
                 <li key={index} className="mb-2">
                   <strong>
-                    <span className="font-bold text-green-200">{item.title}:</span>
+                    <span className="font-bold text-green-200">{term.title}:</span>
                   </strong>
                   <br />
-                  {item.text}
+                  {term.text}
                 </li>
               ))}
             </ol>

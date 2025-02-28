@@ -1,4 +1,4 @@
-// app/api/prepare-deposit/route.js
+// app/api/prepare-vip/route.js
 import { Connection, PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import Nonce from "../../../models/Nonce";
 import { NextResponse } from "next/server";
@@ -15,7 +15,7 @@ const connection = new Connection(
   "confirmed"
 );
 const LOTTERY_WALLET_PUBLIC_KEY = "CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28";
-const TOTAL_LAMPORTS = (0.01 + 0.005) * 1e9; // 15,000,000 lamports
+const VIP_LAMPORTS = 0.01 * 1e9; // 0.01 SOL for VIP
 
 export async function POST(req) {
   try {
@@ -24,7 +24,7 @@ export async function POST(req) {
     const { walletAddress } = await req.json();
     const csrfTokenHeader = req.headers.get("x-csrf-token");
 
-    console.log("Client CSRF Token (prepare-deposit):", csrfTokenHeader);
+    console.log("Client CSRF Token (prepare-vip):", csrfTokenHeader);
 
     if (!csrfTokenHeader) {
       return NextResponse.json({ error: "CSRF token missing" }, { status: 403 });
@@ -57,7 +57,7 @@ export async function POST(req) {
       SystemProgram.transfer({
         fromPubkey: new PublicKey(walletAddress),
         toPubkey: new PublicKey(LOTTERY_WALLET_PUBLIC_KEY),
-        lamports: TOTAL_LAMPORTS,
+        lamports: VIP_LAMPORTS,
       })
     );
 
@@ -66,15 +66,15 @@ export async function POST(req) {
       .toString("base64");
 
     const responseBody = { nonce, serializedTx };
-    console.log("Prepared deposit:", { lamports: TOTAL_LAMPORTS, serializedTx });
+    console.log("Response body prepared (VIP):", responseBody);
 
     return NextResponse.json(responseBody, {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in prepare-deposit:", error.stack);
+    console.error("Error in prepare-vip:", error.stack);
     return NextResponse.json(
-      { error: "Failed to prepare deposit", details: error.message },
+      { error: "Failed to prepare VIP payment", details: error.message },
       { status: 500 }
     );
   }

@@ -1,11 +1,12 @@
+// models/Deposit.js
 import mongoose from "mongoose";
 
-const depositSchema = new mongoose.Schema({
+const DepositSchema = new mongoose.Schema({
   walletAddress: { type: String, required: true },
   amount: { type: Number, required: true },
-  signature: { type: String, unique: true },
-  nonce: { type: String },
-  createdAt: { type: Date, default: Date.now },
+  signature: { type: String, required: true },
+  nonce: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.Deposit || mongoose.model("Deposit", depositSchema);
+export default mongoose.models.Deposit || mongoose.model("Deposit", DepositSchema);

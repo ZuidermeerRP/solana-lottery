@@ -1,6 +1,6 @@
 // hooks/usePhantomWallet.js
 import { useState, useEffect, useCallback } from "react";
-import { Connection, Transaction, PublicKey } from "@solana/web3.js";
+import { Connection, Transaction, PublicKey, SystemProgram } from "@solana/web3.js"; // Added SystemProgram
 
 export const usePhantomWallet = () => {
   const [walletAddress, setWalletAddress] = useState(null);
@@ -13,7 +13,7 @@ export const usePhantomWallet = () => {
     process.env.NEXT_PUBLIC_SOLANA_RPC ||
     "https://broken-indulgent-model.solana-mainnet.quiknode.pro/55d0255c26cdfc79177b04a002f1d1af920f46c8";
 
-  const getConnection = () => {
+const getConnection = () => {
     return new Connection(RPC_ENDPOINT, { commitment: "confirmed" });
   };
 
@@ -137,18 +137,21 @@ export const usePhantomWallet = () => {
 
     const connection = getConnection();
     const LAMPORTS_PER_SOL = 1000000000; // 1 SOL = 1,000,000,000 lamports
-    const requiredAmount = 0.015 * LAMPORTS_PER_SOL; // 0.015 SOL in lamports (0.01 deposit + 0.005 fee)
+    const TOTAL_LAMPORTS = 0.015 * LAMPORTS_PER_SOL; // 0.015 SOL (0.01 deposit + 0.005 fee)
 
     try {
-      // Check wallet balance initially
+      // Check wallet balance
       const balance = await connection.getBalance(new PublicKey(walletAddress));
-      if (balance < requiredAmount) {
-        setError("Insufficient SOL balance. You need at least 0.015 SOL (0.01 deposit + 0.005 fee).");
+      if (balance < TOTAL_LAMPORTS) {
+        setError(
+          `Insufficient SOL balance. Need ${TOTAL_LAMPORTS / LAMPORTS_PER_SOL} SOL, have ${balance / LAMPORTS_PER_SOL} SOL`
+        );
         return false;
       }
 
       const csrfToken = await fetchCsrfToken();
       console.log("CSRF token sent:", csrfToken);
+
       const prepareRes = await fetchWithTimeout("/api/prepare-deposit", {
         method: "POST",
         headers: {
@@ -163,10 +166,21 @@ export const usePhantomWallet = () => {
         throw new Error(error || "Failed to prepare deposit");
       }
       const { nonce, serializedTx } = await prepareRes.json();
+      console.log("Prepared serializedTx:", serializedTx);
 
       const transaction = Transaction.from(Buffer.from(serializedTx, "base64"));
+      const transferInstruction = transaction.instructions.find(
+        (instr) => instr.programId.toString() === SystemProgram.programId.toString()
+      );
+      const lamportsSent = transferInstruction?.data.readBigInt64LE(4); // Offset 4 is lamports in transfer instruction
+      console.log("Prepared transaction lamports:", lamportsSent);
 
-      // Sign and send transaction with better error handling
+      if (lamportsSent !== BigInt(TOTAL_LAMPORTS)) {
+        throw new Error(
+          `Prepared transaction amount mismatch: expected ${TOTAL_LAMPORTS} lamports, got ${lamportsSent}`
+        );
+      }
+
       let signature;
       try {
         const signResult = await window.solana.signAndSendTransaction(transaction);
@@ -179,7 +193,6 @@ export const usePhantomWallet = () => {
         throw new Error("Failed to sign and send transaction: " + signErr.message);
       }
 
-      // Confirm transaction with timeout
       const confirmationTimeout = 30000; // 30 seconds timeout
       let attempts = 0;
       const maxAttempts = 3;
@@ -219,7 +232,7 @@ export const usePhantomWallet = () => {
       const userFriendlyError =
         err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance")
           ? "Insufficient SOL balance. Please ensure you have at least 0.015 SOL available."
-          : err.message.includes("Failed to") || err.message.includes("timed out")
+          : err.message.includes("Failed to") || err.message.includes("timed out") || err.message.includes("mismatch")
           ? err.message
           : "An unexpected error occurred. Please try again.";
       setError(userFriendlyError);
@@ -228,7 +241,7 @@ export const usePhantomWallet = () => {
     }
   };
 
-  return {
+return {
     walletAddress,
     currentDateTime,
     lotteryPot,
@@ -237,5 +250,6 @@ export const usePhantomWallet = () => {
     connectToPhantom,
     handleDeposit,
     fetchLotteryData,
+    getConnection, // Add this
   };
 };
