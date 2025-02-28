@@ -47,6 +47,8 @@ export default function Home() {
   const [howItWorks, setHowItWorks] = useState<{ lastUpdated: string; content: { title: string; text: string }[] } | null>(null);
   const [isVip, setIsVip] = useState(false);
   const [depositCount, setDepositCount] = useState(0);
+  const [visitorCount, setVisitorCount] = useState(0);
+  const [isLoadingVisitorCount, setIsLoadingVisitorCount] = useState(true);
 
   const connection = getConnection();
 
@@ -107,8 +109,24 @@ export default function Home() {
       }
     };
 
+const fetchVisitorCount = async () => {
+  try {
+    setIsLoadingVisitorCount(true);
+    const res = await fetch("/api/visitor-count", { credentials: "include" }); // Corrected URL
+    if (!res.ok) throw new Error("Failed to fetch visitor count");
+    const data = await res.json();
+    setVisitorCount(data.count);
+  } catch (err) {
+    console.error("Error fetching visitor count:", err);
+    setVisitorCount(0);
+  } finally {
+    setIsLoadingVisitorCount(false);
+  }
+};
+
     fetchTerms();
     fetchHowItWorks();
+    fetchVisitorCount();
   }, []);
 
   const fetchLatestWinner = async () => {
@@ -271,25 +289,27 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-      <div className="w-full text-center text-lg text-gray-300 mb-4 fixed top-0 left-0 z-50 glow-bottom-border">
-        <div className="marquee">
-          <div className="marquee__inner">
-            <span className="separator-dot">•</span>
-            <span className="font-bold">🎉 Welcome to the Solana Lottery! 🎉</span>
-            <span className="separator-dot">•</span>
-            <span className="font-bold">🌟 Take your chance to win BIG! 🌟</span>
-            <span className="separator-dot">•</span>
-            <span className="font-bold">🙊 Feeling lucky? Join our thrilling lottery draws! 🙊</span>
-            <span className="separator-dot">•</span>
-            <span className="font-bold">👋 Uncover amazing offers and rewards! 👋</span>
-            <span className="separator-dot">•</span>
-            <span className="font-bold">🚀 Small deposit, win BIG! 🚀</span>
-            <span className="separator-dot">•</span>
-            <span className="font-bold">🎲 May luck be on your side! 🎲</span>
-            <span className="separator-dot">•</span>
-          </div>
-        </div>
-      </div>
+<div className="w-full text-center text-lg text-gray-300 mb-4 fixed top-0 left-0 z-50 glow-bottom-border">
+  <div className="marquee">
+    <div className="marquee__inner">
+      <span className="separator-dot">•</span>
+      <span className="font-bold">🎉 Welcome to the Solana Lottery! 🎉</span>
+      <span className="separator-dot">•</span>
+      <span className="font-bold">🙋 You are visitor number {isLoadingVisitorCount ? '...' : visitorCount.toLocaleString()} 🙋</span> {/* Likely line 462 */}
+      <span className="separator-dot">•</span>
+      <span className="font-bold">🌟 Take your chance to win BIG! 🌟</span>
+      <span className="separator-dot">•</span>
+      <span className="font-bold">🙊 Feeling lucky? Join our thrilling lottery draws! 🙊</span>
+      <span className="separator-dot">•</span>
+      <span className="font-bold">👋 Uncover amazing offers and rewards! 👋</span>
+      <span className="separator-dot">•</span>
+      <span className="font-bold">🚀 Small deposit, win BIG! 🚀</span>
+      <span className="separator-dot">•</span>
+      <span className="font-bold">🎲 May luck be on your side! 🎲</span>
+      <span className="separator-dot">•</span>
+    </div>
+  </div>
+</div>
 
       <div className="mb-2 mt-5">
         <Image
@@ -438,9 +458,9 @@ export default function Home() {
 
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
-          <p className="text-sm text-center text-gray-300">
-            Today&#39;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
-          </p>
+<p className="text-sm text-center text-gray-300">
+  Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+</p>
         </main>
       </div>
 
