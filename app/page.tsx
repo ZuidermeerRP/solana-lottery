@@ -326,12 +326,14 @@ const fetchVisitorCount = async () => {
       <div className="bg-gray-800 shadow-lg rounded-lg p-10 max-w-lg w-full mt-10 glow-border relative">
         <main className="flex flex-col items-center">
           <p className="text-xl text-center text-gray-300 mb-3">
-            🎉 Daily Lottery 🎉
+		  <div className="text-2xl text-center text-gray-300 mb-6">
+            🎉 <span className="font-bold">Daily Lottery</span> 🎉
             <br />
-            🎉 Draw between 21:00-22:00 (CET)! 🎉
+			</div>
+            ⏰ Draw between:<span className="font-bold text-green-200"> 21:00-22:00 (CET)</span> ⏰
           </p>
           <p className="text-lg text-center text-gray-300 mb-4">
-            Current Lottery Pot: <span className="font-bold text-green-200">{lotteryPot} $SOL</span>
+            Current Lottery Pot: <span className="font-bold text-green-200">{lotteryPot} $SOL</span>🫰
           </p>
           <p className="text-lg text-center text-gray-300 mb-4">
             Deposit <span className="font-bold text-green-200">0.01 $SOL</span> to enter!
@@ -484,7 +486,7 @@ const fetchVisitorCount = async () => {
               isVip || isPurchasingVip ? "gold-glow opacity-50 cursor-not-allowed" : "gold-glow"
             }`}
           >
-            {isVip ? "VIP Active" : isPurchasingVip ? "Purchasing VIP..." : "Become VIP (0.01 SOL)"}
+            {isVip ? "VIP Active" : isPurchasingVip ? "Purchasing VIP..." : "Become VIP (0.01 $SOL)"}
           </span>
         )}
       </div>
