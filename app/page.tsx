@@ -289,27 +289,29 @@ const fetchVisitorCount = async () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-<div className="w-full text-center text-lg text-gray-300 mb-4 fixed top-0 left-0 z-50 glow-bottom-border">
-  <div className="marquee">
-    <div className="marquee__inner">
-      <span className="separator-dot">•</span>
-      <span className="font-bold">🎉 Welcome to the Solana Lottery! 🎉</span>
-      <span className="separator-dot">•</span>
-      <span className="font-bold">🙋 You are visitor number {isLoadingVisitorCount ? '...' : visitorCount.toLocaleString()} 🙋</span> {/* Likely line 462 */}
-      <span className="separator-dot">•</span>
-      <span className="font-bold">🌟 Take your chance to win BIG! 🌟</span>
-      <span className="separator-dot">•</span>
-      <span className="font-bold">🙊 Feeling lucky? Join our thrilling lottery draws! 🙊</span>
-      <span className="separator-dot">•</span>
-      <span className="font-bold">👋 Uncover amazing offers and rewards! 👋</span>
-      <span className="separator-dot">•</span>
-      <span className="font-bold">🚀 Small deposit, win BIG! 🚀</span>
-      <span className="separator-dot">•</span>
-      <span className="font-bold">🎲 May luck be on your side! 🎲</span>
-      <span className="separator-dot">•</span>
-    </div>
-  </div>
-</div>
+      <div className="w-full text-center text-lg text-gray-300 mb-4 fixed top-0 left-0 z-50 glow-bottom-border">
+        <div className="marquee">
+          <div className="marquee__inner">
+            <span className="separator-dot">•</span>
+            <span className="font-bold">🎉 Welcome to the Solana Lottery! 🎉</span>
+            <span className="separator-dot">•</span>
+            <span className="font-bold">
+              🙋 You are visitor number {isLoadingVisitorCount ? "..." : visitorCount.toLocaleString()} 🙋
+            </span>
+            <span className="separator-dot">•</span>
+            <span className="font-bold">🌟 Take your chance to win BIG! 🌟</span>
+            <span className="separator-dot">•</span>
+            <span className="font-bold">🙊 Feeling lucky? Join our thrilling lottery draws! 🙊</span>
+            <span className="separator-dot">•</span>
+            <span className="font-bold">👋 Uncover amazing offers and rewards! 👋</span>
+            <span className="separator-dot">•</span>
+            <span className="font-bold">🚀 Small deposit, win BIG! 🚀</span>
+            <span className="separator-dot">•</span>
+            <span className="font-bold">🎲 May luck be on your side! 🎲</span>
+            <span className="separator-dot">•</span>
+          </div>
+        </div>
+      </div>
 
       <div className="mb-2 mt-5">
         <Image
@@ -318,6 +320,7 @@ const fetchVisitorCount = async () => {
           width={600}
           height={500}
           className="object-contain w-auto h-auto"
+          priority
         />
       </div>
 
@@ -325,25 +328,26 @@ const fetchVisitorCount = async () => {
 
       <div className="bg-gray-800 shadow-lg rounded-lg p-10 max-w-lg w-full mt-10 glow-border relative">
         <main className="flex flex-col items-center">
-          <p className="text-xl text-center text-gray-300 mb-3">
-		  <div className="text-2xl text-center text-gray-300 mb-6">
-            🎉 <span className="font-bold">Daily Lottery</span> 🎉
-            <br />
-			</div>
-            ⏰ Draw between:<span className="font-bold text-green-200"> 21:00-22:00 (CET)</span> ⏰
-          </p>
+          <div className="text-center text-gray-300 mb-3">
+            <span className="text-2xl block mb-6">
+              🎉 <span className="font-bold">Daily Lottery</span> 🎉
+            </span>
+            ⏰ Draw between: <span className="font-bold text-green-200">21:00-22:00 (CET)</span> ⏰
+          </div>
+
           <p className="text-lg text-center text-gray-300 mb-4">
             Current Lottery Pot: <span className="font-bold text-green-200">{lotteryPot} $SOL</span>🫰
           </p>
+
           <p className="text-lg text-center text-gray-300 mb-4">
-            Deposit <span className="font-bold text-green-200">0.01 $SOL</span> to enter!
+            Deposit <span className="font-bold text-green-200">0.02 $SOL</span> to enter!
           </p>
 
-          {latestWinner && latestWinner.winner && (
+          {latestWinner?.winner && (
             <p className="text-sm text-center text-gray-300 mb-4 relative">
               Latest Winner:{" "}
               <span
-                onClick={copyWinnerToClipboard}
+                onClick={() => copyToClipboard(latestWinner.winner, "winner")}
                 className="font-bold text-green-200 cursor-pointer hover:underline"
               >
                 {shortenAddress(latestWinner.winner)}
@@ -353,15 +357,14 @@ const fetchVisitorCount = async () => {
                 {new Date(latestWinner.drawnAt).toLocaleDateString("en-NL", { timeZone: "Europe/Amsterdam" })}
               </span>
               {latestWinner.payoutSignature && (
-                <>
-                  {" "}
-                  <span
-                    onClick={copyPayoutSignatureToClipboard}
-                    className="text-xs text-gray-500 cursor-pointer hover:underline"
-                  >
-                    (Tx: {shortenAddress(latestWinner.payoutSignature)})
-                  </span>
-                </>
+                <span
+                  onClick={() => copyToClipboard(latestWinner.payoutSignature ?? "", "payout")}
+                  className="text-xs text-gray-500 cursor-pointer hover:underline"
+                >
+                  {" (Tx: "}
+                  {shortenAddress(latestWinner.payoutSignature)}
+                  {")"}
+                </span>
               )}
               {showPopup === "winner" && (
                 <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">

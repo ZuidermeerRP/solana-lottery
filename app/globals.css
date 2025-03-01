@@ -77,6 +77,8 @@ p:hover {
     margin: 0 10px;
 }
 
+
+
 @keyframes marquee {
     0% {
         transform: translateX(100%);

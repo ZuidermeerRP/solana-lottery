@@ -10,8 +10,8 @@ export async function GET() {
         text: "To join the Solana Lottery, connect your Phantom Wallet—a widely used Solana-compatible wallet. Click 'Connect Phantom Wallet' on the main page and follow the prompts to link your wallet securely.",
       },
       {
-        title: "Depositing 0.01 SOL",
-        text: "Each lottery entry requires a deposit of 0.01 SOL, plus a 0.005 SOL transaction fee. After connecting your wallet, click 'Deposit 0.01 $SOL (+0.005 fee)' to enter. You’re limited to 3 deposits per day unless you upgrade to VIP.",
+        title: "Depositing 0.02 $SOL",
+        text: "Each lottery entry requires a deposit of 0.02 $SOL, plus a 0.001 $SOL transaction fee. After connecting your wallet, click 'Deposit 0.02 $SOL (+0.005 fee)' to enter. You’re limited to 3 deposits per day unless you upgrade to VIP.",
       },
       {
         title: "Daily Draw (21:00 - 22:00 CET)",
@@ -23,7 +23,7 @@ export async function GET() {
       },
       {
         title: "Winning the Pot",
-        text: "The more you deposit, the higher your chances of winning the entire pot. For example, depositing 0.01 SOL three times gives you 3 entries, tripling your odds compared to a single entry. The pot goes to one lucky winner daily!",
+        text: "The more you deposit, the higher your chances of winning the entire pot. For example, depositing 0.01 $SOL three times gives you 3 entries, tripling your odds compared to a single entry. The pot goes to one lucky winner daily!",
       },
       {
         title: "VIP 24 HOURS",

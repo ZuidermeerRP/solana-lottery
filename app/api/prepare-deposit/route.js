@@ -15,7 +15,7 @@ const connection = new Connection(
   "confirmed"
 );
 const LOTTERY_WALLET_PUBLIC_KEY = "CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28";
-const TOTAL_LAMPORTS = (0.01 + 0.005) * 1e9; // 15,000,000 lamports
+const TOTAL_LAMPORTS = (0.02 + 0.001) * 1e9; // This will give you 24,000,000 lamports
 
 export async function POST(req) {
   try {

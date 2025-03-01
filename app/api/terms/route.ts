@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const termsOfUse = {
-    lastUpdated: "26-02-2025",
+    lastUpdated: "01-03-2025",
     content: [
       {
         title: "Acceptance of Terms",
-        text: "By accessing or using our Solana Lottery website (\"Website\"), you agree to comply with and be bound by these Terms of Service (\"Terms\"). If you do not agree to these Terms, you must not use the Website.",
+        text: "By accessing or using our Solana Lottery website (\"https://solana-lottery.com\"), you agree to comply with and be bound by these Terms of Service (\"Terms\"). If you do not agree to these Terms, you must not use the Website.",
       },
       {
         title: "Eligibility",
@@ -27,7 +27,7 @@ export async function GET() {
       },
       {
         title: "Intellectual Property",
-        text: "All content on the Website, including text, graphics, logos, and software, is the property of [Your Company Name] and is protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works from any content on the Website without our prior written consent.",
+        text: "All content on the Website, including text, graphics, logos, and software, is the property of Solana Lottery and is protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works from any content on the Website without our prior written consent.",
       },
       {
         title: "Disclaimer of Warranties",
@@ -43,11 +43,7 @@ export async function GET() {
       },
       {
         title: "Governing Law",
-        text: "These Terms shall be governed by and construed in accordance with the laws of [Your Country/State], without regard to its conflict of law principles.",
-      },
-      {
-        title: "Contact Information",
-        text: "If you have any questions or concerns about these Terms, please contact us at [Your Contact Information].",
+        text: "These Terms shall be governed by and construed in accordance with the laws of the USA, without regard to its conflict of law principles.",
       },
     ],
   };

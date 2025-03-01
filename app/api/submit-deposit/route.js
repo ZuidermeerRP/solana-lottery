@@ -17,8 +17,8 @@ const connection = new Connection(
 );
 const LOTTERY_WALLET_PUBLIC_KEY = "CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28";
 const FEE_WALLET_PUBLIC_KEY = "AhYVXTS9ASNLkoUGd5u65F7uaNJSwddfTwnK7yV1YDVr";
-const LOTTERY_AMOUNT = 0.01; // SOL
-const FEE_AMOUNT = 0.005;    // SOL
+const LOTTERY_AMOUNT = 0.02; // SOL
+const FEE_AMOUNT = 0.001;    // SOL
 const LOTTERY_LAMPORTS = LOTTERY_AMOUNT * 1e9; // 0.01 SOL in lamports
 const FEE_LAMPORTS = FEE_AMOUNT * 1e9;         // 0.005 SOL in lamports
 

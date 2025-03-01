@@ -15,8 +15,8 @@ export const usePhantomWallet = () => {
 
   const LOTTERY_WALLET = new PublicKey("CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28");
   const FEE_WALLET = new PublicKey("AhYVXTS9ASNLkoUGd5u65F7uaNJSwddfTwnK7yV1YDVr");
-  const LOTTERY_AMOUNT = 0.01 * 1e9; // 0.01 SOL in lamports
-  const FEE_AMOUNT = 0.005 * 1e9;    // 0.005 SOL in lamports
+  const LOTTERY_AMOUNT = 0.02 * 1e9; // 0.01 SOL in lamports
+  const FEE_AMOUNT = 0.001 * 1e9;    // 0.005 SOL in lamports
 
   const getConnection = () => {
     return new Connection(RPC_ENDPOINT, { commitment: "confirmed" });
