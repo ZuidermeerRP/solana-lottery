@@ -70,7 +70,6 @@ export default function Home() {
       const res = await fetch(`/api/deposit-count?walletAddress=${walletAddress}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch deposit count");
       const { count } = await res.json();
-      console.log("Fetched deposit count:", count);
       setDepositCount(count);
     } catch (err) {
       console.error("Error fetching deposit count:", err);
@@ -109,20 +108,20 @@ export default function Home() {
       }
     };
 
-const fetchVisitorCount = async () => {
-  try {
-    setIsLoadingVisitorCount(true);
-    const res = await fetch("/api/visitor-count", { credentials: "include" }); // Corrected URL
-    if (!res.ok) throw new Error("Failed to fetch visitor count");
-    const data = await res.json();
-    setVisitorCount(data.count);
-  } catch (err) {
-    console.error("Error fetching visitor count:", err);
-    setVisitorCount(0);
-  } finally {
-    setIsLoadingVisitorCount(false);
-  }
-};
+    const fetchVisitorCount = async () => {
+      try {
+        setIsLoadingVisitorCount(true);
+        const res = await fetch("/api/visitor-count", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to fetch visitor count");
+        const data = await res.json();
+        setVisitorCount(data.count);
+      } catch (err) {
+        console.error("Error fetching visitor count:", err);
+        setVisitorCount(0);
+      } finally {
+        setIsLoadingVisitorCount(false);
+      }
+    };
 
     fetchTerms();
     fetchHowItWorks();
@@ -206,17 +205,15 @@ const fetchVisitorCount = async () => {
       }
 
       const { nonce, serializedTx } = await prepareRes.json();
-      console.log("Prepared VIP serializedTx:", serializedTx);
 
       const transaction = Transaction.from(Buffer.from(serializedTx, "base64"));
       let signature;
       try {
         const signResult = await window.solana!.signAndSendTransaction(transaction);
         signature = signResult.signature;
-        console.log("VIP transaction signature:", signature);
       } catch (signErr) {
         if (signErr instanceof Error && signErr.message.includes("insufficient funds")) {
-          throw new Error("Insufficient SOL balance during signing. Please ensure you have at least 0.01 SOL.");
+          throw new Error("Insufficient SOL balance during signing. Please ensure you have at least $0.01 SOL.");
         }
         throw signErr;
       }
@@ -313,7 +310,7 @@ const fetchVisitorCount = async () => {
         </div>
       </div>
 
-      <div className="mb-2 mt-5">
+      <div className="mb-2 mt-10">
         <Image
           src="/logo.png"
           alt="Solana Lottery Logo"
@@ -324,61 +321,24 @@ const fetchVisitorCount = async () => {
         />
       </div>
 
-      <h1 className="text-center text-6xl font-extrabold text-white mt-1 glow">Solana Lottery</h1>
-
-      <div className="bg-gray-800 shadow-lg rounded-lg p-10 max-w-lg w-full mt-10 glow-border relative">
+      <div className="bg-gray-900 shadow-lg rounded-lg p-5 max-w-lg w-full mt-5 glow-border relative">
         <main className="flex flex-col items-center">
           <div className="text-center text-gray-300 mb-3">
-            <span className="text-2xl block mb-6">
-              🎉 <span className="font-bold">Daily Lottery</span> 🎉
+            <span className="text-2xl block mb-2">
+              🎉 <span className="font-bold text-white hover:underline transition-colors glow">Daily Solana Lottery</span> 🎉
             </span>
-            ⏰ Draw between: <span className="font-bold text-green-200">21:00-22:00 (CET)</span> ⏰
+            Draw between: <span className="font-bold text-green-200">21:00-22:00 (CET)</span>
+            <hr className="border-t border-gray-600 my-4 w-full" />
           </div>
 
-          <p className="text-lg text-center text-gray-300 mb-4">
+          <p className="text-lg text-center text-gray-300">
             Current Lottery Pot: <span className="font-bold text-green-200">{lotteryPot} $SOL</span>🫰
           </p>
 
           <p className="text-lg text-center text-gray-300 mb-4">
             Deposit <span className="font-bold text-green-200">0.02 $SOL</span> to enter!
           </p>
-
-          {latestWinner?.winner && (
-            <p className="text-sm text-center text-gray-300 mb-4 relative">
-              Latest Winner:{" "}
-              <span
-                onClick={() => copyToClipboard(latestWinner.winner, "winner")}
-                className="font-bold text-green-200 cursor-pointer hover:underline"
-              >
-                {shortenAddress(latestWinner.winner)}
-              </span>{" "}
-              won <span className="font-bold text-green-200">{latestWinner.amount} $SOL</span> on{" "}
-              <span className="font-bold text-green-200">
-                {new Date(latestWinner.drawnAt).toLocaleDateString("en-NL", { timeZone: "Europe/Amsterdam" })}
-              </span>
-              {latestWinner.payoutSignature && (
-                <span
-                  onClick={() => copyToClipboard(latestWinner.payoutSignature ?? "", "payout")}
-                  className="text-xs text-gray-500 cursor-pointer hover:underline"
-                >
-                  {" (Tx: "}
-                  {shortenAddress(latestWinner.payoutSignature)}
-                  {")"}
-                </span>
-              )}
-              {showPopup === "winner" && (
-                <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                  Copied!
-                </span>
-              )}
-              {showPopup === "payout" && (
-                <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                  Copied Tx!
-                </span>
-              )}
-            </p>
-          )}
-
+          <hr className="border-t border-gray-600 my-4 w-full" />
           <button
             onClick={connectToPhantom}
             disabled={!!walletAddress}
@@ -397,7 +357,7 @@ const fetchVisitorCount = async () => {
                 isDepositing ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              {isDepositing ? "Depositing..." : "Deposit 0.01 $SOL (+0.005 fee)"}
+              {isDepositing ? "Depositing..." : "Deposit 0.021 $SOL"}
             </button>
           )}
 
@@ -463,9 +423,45 @@ const fetchVisitorCount = async () => {
 
           {error && <p className="text-sm text-center text-red-400 mb-4">❌ {error} ❌</p>}
 
-<p className="text-sm text-center text-gray-300">
-  Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
-</p>
+          <p className="text-sm text-center text-gray-300 mb-3">
+            Today&apos;s date is <span className="font-bold text-green-200">{currentDateTime}</span> in CET.
+          </p>
+
+          {latestWinner?.winner && (
+            <p className="text-sm text-center text-gray-300 relative">
+              Latest Winner:{" "}
+              <span
+                onClick={copyWinnerToClipboard}
+                className="font-bold text-green-200 cursor-pointer hover:underline"
+              >
+                {shortenAddress(latestWinner.winner)}
+              </span>{" "}
+              won <span className="font-bold text-green-200">{latestWinner.amount} $SOL</span> on{" "}
+              <span className="font-bold text-green-200">
+                {new Date(latestWinner.drawnAt).toLocaleDateString("en-NL", { timeZone: "Europe/Amsterdam" })}
+              </span>
+              {latestWinner.payoutSignature && (
+                <span
+                  onClick={copyPayoutSignatureToClipboard}
+                  className="text-xs text-gray-500 cursor-pointer hover:underline"
+                >
+                  {" (Tx: "}
+                  {shortenAddress(latestWinner.payoutSignature)}
+                  {")"}
+                </span>
+              )}
+              {showPopup === "winner" && (
+                <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                  Copied!
+                </span>
+              )}
+              {showPopup === "payout" && (
+                <span className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                  Copied Tx!
+                </span>
+              )}
+            </p>
+          )}
         </main>
       </div>
 
@@ -514,7 +510,7 @@ const fetchVisitorCount = async () => {
             </ol>
             <button
               onClick={closeTermsModal}
-              className="fixed bottom-4 left-1/2 transform -translate-x-1/2 rounded-full border border-white bg-white text-gray-800 px-4 py-2 text-sm hover:bg-gray-200 transition duration-200 ease-in-out"
+              className="fixed bottom-4 rounded-full border border-white bg-white text-gray-800 px-4 py-2 text-sm hover:bg-gray-200 transition duration-200 ease-in-out"
             >
               Close
             </button>
@@ -542,7 +538,7 @@ const fetchVisitorCount = async () => {
             </ol>
             <button
               onClick={closeHowItWorksModal}
-              className="fixed bottom-4 left-1/2 transform -translate-x-1/2 rounded-full border border-white bg-white text-gray-800 px-4 py-2 text-sm hover:bg-gray-200 transition duration-200 ease-in-out"
+              className="fixed bottom-4 rounded-full border border-white bg-white text-gray-800 px-4 py-2 text-sm hover:bg-gray-200 transition duration-200 ease-in-out"
             >
               Close
             </button>
