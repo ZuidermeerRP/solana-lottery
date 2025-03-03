@@ -1,9 +1,11 @@
-// hooks/usePhantomWallet.js
 import { useState, useEffect, useCallback } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, Transaction, PublicKey, SystemProgram } from "@solana/web3.js";
 
 export const usePhantomWallet = () => {
+  const { publicKey, connect, connected } = useWallet();
   const [walletAddress, setWalletAddress] = useState(null);
+  const [balance, setBalance] = useState(null); // Add balance state
   const [currentDateTime, setCurrentDateTime] = useState("");
   const [lotteryPot, setLotteryPot] = useState(0);
   const [participants, setParticipants] = useState([]);
@@ -15,8 +17,8 @@ export const usePhantomWallet = () => {
 
   const LOTTERY_WALLET = new PublicKey("CFLcvynnCrfQHcevyosen2yFp8qj59JPxjRww4MWPi28");
   const FEE_WALLET = new PublicKey("AhYVXTS9ASNLkoUGd5u65F7uaNJSwddfTwnK7yV1YDVr");
-  const LOTTERY_AMOUNT = 0.02 * 1e9; // 0.01 SOL in lamports
-  const FEE_AMOUNT = 0.001 * 1e9;    // 0.005 SOL in lamports
+  const LOTTERY_AMOUNT = 0.02 * 1e9;
+  const FEE_AMOUNT = 0.001 * 1e9;
 
   const getConnection = () => {
     return new Connection(RPC_ENDPOINT, { commitment: "confirmed" });
@@ -51,6 +53,25 @@ export const usePhantomWallet = () => {
     }
   };
 
+  // Sync walletAddress and fetch balance
+  useEffect(() => {
+    if (connected && publicKey) {
+      const address = publicKey.toString();
+      setWalletAddress(address);
+      const connection = getConnection();
+      connection.getBalance(publicKey).then((bal) => {
+        setBalance(bal / 1e9); // Convert lamports to SOL
+      }).catch((err) => {
+        console.error("Failed to fetch balance:", err);
+        setBalance(null);
+      });
+      setError(null);
+    } else {
+      setWalletAddress(null);
+      setBalance(null);
+    }
+  }, [connected, publicKey]);
+
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date().toLocaleString("en-NL", {
@@ -75,9 +96,9 @@ export const usePhantomWallet = () => {
       return false;
     }
     try {
-      const response = await window.solana.connect();
-      setWalletAddress(response.publicKey.toString());
-      setError(null);
+      if (!connected) {
+        await connect();
+      }
       return true;
     } catch (err) {
       setError("Failed to connect to Phantom wallet.");
@@ -122,10 +143,9 @@ export const usePhantomWallet = () => {
 
     const connection = getConnection();
     const LAMPORTS_PER_SOL = 1e9;
-    const TOTAL_LAMPORTS = LOTTERY_AMOUNT + FEE_AMOUNT; // 0.015 SOL
+    const TOTAL_LAMPORTS = LOTTERY_AMOUNT + FEE_AMOUNT;
 
     try {
-      // Check wallet balance
       const balance = await connection.getBalance(new PublicKey(walletAddress));
       if (balance < TOTAL_LAMPORTS) {
         setError(
@@ -136,7 +156,6 @@ export const usePhantomWallet = () => {
 
       const csrfToken = await fetchCsrfToken();
 
-      // Fetch nonce from server (still needed for deposit submission)
       const prepareRes = await fetchWithTimeout("/api/prepare-deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
@@ -146,7 +165,6 @@ export const usePhantomWallet = () => {
       if (!prepareRes.ok) throw new Error((await prepareRes.json()).error || "Failed to prepare deposit");
       const { nonce } = await prepareRes.json();
 
-      // Create transaction with two transfers
       const transaction = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: new PublicKey(walletAddress),
@@ -160,16 +178,13 @@ export const usePhantomWallet = () => {
         })
       );
 
-      // Set recent blockhash and fee payer
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = new PublicKey(walletAddress);
 
-      // Sign and send transaction
       const { signature } = await window.solana.signAndSendTransaction(transaction);
       console.log("Transaction signature:", signature);
 
-      // Confirm transaction
       const confirmationTimeout = 30000;
       let attempts = 0;
       const maxAttempts = 3;
@@ -187,7 +202,6 @@ export const usePhantomWallet = () => {
         }
       }
 
-      // Submit deposit to server
       const depositRes = await fetchWithTimeout("/api/submit-deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
@@ -206,7 +220,7 @@ export const usePhantomWallet = () => {
     } catch (err) {
       const userFriendlyError =
         err.message.includes("insufficient funds") || err.message.includes("Insufficient SOL balance")
-          ? "Insufficient SOL balance. Please ensure you have at least 0.015 SOL available."
+          ? "Insufficient SOL balance. Please ensure you have at least 0.021 SOL available."
           : err.message.includes("Failed to") || err.message.includes("timed out")
           ? err.message
           : "An unexpected error occurred. Please try again.";
@@ -218,6 +232,7 @@ export const usePhantomWallet = () => {
 
   return {
     walletAddress,
+    balance, // Add balance to return object
     currentDateTime,
     lotteryPot,
     participants,
